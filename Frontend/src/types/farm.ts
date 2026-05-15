@@ -140,7 +140,6 @@ export interface HeatmapData {
   news?: NewsItem[];
   news_ai_analysis?: string;
   rate?: {
-    govdata?: MandiDayData[] | null;
     agmarknet?: AgmarknetData;
   };
   mandi_ai_analysis?: string;
@@ -157,24 +156,6 @@ export interface HeatmapData {
     light_green?: number;
     dark_green?: number;
   };
-}
-
-export interface MandiRecord {
-  state: string;
-  district: string;
-  market: string;
-  commodity: string;
-  variety: string;
-  grade: string;
-  arrival_date: string;
-  min_price: number;
-  max_price: number;
-  modal_price: number;
-}
-
-export interface MandiDayData {
-  date: string;
-  records: MandiRecord[];
 }
 
 export interface NewsItem {

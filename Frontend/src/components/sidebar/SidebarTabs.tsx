@@ -360,9 +360,11 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
             {activeTab === 'mandi' &&
               (heatmapData ? (
                 <MandiRatesPanel
-                  govdata={heatmapData?.rate?.govdata ?? []}
                   {...(heatmapData?.rate?.agmarknet !== undefined && {
                     agmarknet: heatmapData.rate.agmarknet,
+                  })}
+                  {...(heatmapData?.location?.district && {
+                    detectedDistrict: heatmapData.location.district,
                   })}
                   {...(heatmapData?.mandi_ai_analysis !== undefined && {
                     aiAnalysis: heatmapData.mandi_ai_analysis,
@@ -371,7 +373,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
               ) : heatmapLoading ? (
                 <MandiRatesSkeleton />
               ) : (
-                <MandiRatesPanel govdata={[]} />
+                <MandiRatesPanel />
               ))}
 
             {activeTab === 'export' && (

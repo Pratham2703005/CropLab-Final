@@ -307,7 +307,7 @@ async def generate_heatmap_lite(request: HeatmapRequest):
         # --- Run all slow jobs in parallel ---
         from concurrent.futures import ThreadPoolExecutor
         from utils.news_fetcher import fetch_agri_news
-        from utils.rates_fetcher import fetch_govdata_last_n_days, fetch_agmarknet
+        from utils.rates_fetcher import fetch_agmarknet
 
         def _ndwi_job():
             logger.info("[lite] Calculating NDWI...")
@@ -343,16 +343,10 @@ async def generate_heatmap_lite(request: HeatmapRequest):
 
         def _rate_job():
             try:
-                govdata = fetch_govdata_last_n_days(state=resolved_state, crop=request.crop, days=7) if resolved_state else []
-            except Exception as e:
-                logger.warning(f"[lite] ⚠️  govdata fetch failed (non-blocking): {e}")
-                govdata = []
-            try:
-                agmarknet = fetch_agmarknet(state=resolved_state, crop=request.crop)
+                return fetch_agmarknet(state=resolved_state, crop=request.crop)
             except Exception as e:
                 logger.warning(f"[lite] ⚠️  agmarknet fetch failed (non-blocking): {e}")
-                agmarknet = None
-            return govdata or [], agmarknet
+                return None
 
         with ThreadPoolExecutor(max_workers=6) as pool:
             f_ndwi = pool.submit(_ndwi_job)
@@ -364,7 +358,7 @@ async def generate_heatmap_lite(request: HeatmapRequest):
             ndre_result = f_ndre.result()
             anomaly_data = f_anom.result()
             news_articles = f_news.result()
-            govdata_rates, agmarknet_rates = f_rate.result()
+            agmarknet_rates = f_rate.result()
 
         # --- Build NDWI / NDRE mask payloads ---
         ndwi_masks_response: dict = {}
@@ -450,8 +444,7 @@ async def generate_heatmap_lite(request: HeatmapRequest):
             )
             f_mandi_ai = pool.submit(
                 generate_mandi_summary,
-                govdata_rates or [],
-                agmarknet_rates,
+                agmarknet_rates=agmarknet_rates,
                 crop=request.crop,
                 district=district_arg,
                 state=resolved_state,
@@ -472,7 +465,6 @@ async def generate_heatmap_lite(request: HeatmapRequest):
             "news": news_articles or [],
             "news_ai_analysis": news_ai_analysis,
             "rate": {
-                "govdata": govdata_rates or [],
                 "agmarknet": agmarknet_rates,
             },
             "mandi_ai_analysis": mandi_ai_analysis,

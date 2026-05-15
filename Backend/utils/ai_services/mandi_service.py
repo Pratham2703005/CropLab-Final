@@ -1,14 +1,14 @@
 """Mandi rate analysis service.
 
-Produces a one-paragraph reading of recent mandi (Indian wholesale market)
-prices fused with the farm's current crop-health signals from satellite
-imagery. The model is allowed to state factual implications between the two
-data sources but cannot prescribe buy/sell/hold actions.
+Produces a one-paragraph reading of agmarknet wholesale-prices monthly trends
+fused with the farm's current crop-health signals from satellite imagery.
+The model is allowed to state factual implications between the two data
+sources but cannot prescribe buy/sell/hold actions.
 """
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .nvidia_client import NvidiaClientError, invoke_text_completion
 
@@ -16,116 +16,163 @@ logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT = (
-    "You are an agricultural analyst. The JSON below contains (a) recent mandi "
-    "(Indian wholesale market) price stats and (b) the farm's current "
-    "crop-health signals from satellite imagery. Produce ONE short paragraph "
-    "(max ~110 words) the farmer can read at a glance.\n\n"
+    "You are an agricultural analyst. The JSON below contains (a) an agmarknet "
+    "6-month wholesale-price monthly trend for the farmer's district (with the "
+    "state-wide average for comparison) and (b) the farm's current crop-health "
+    "signals from satellite imagery. Produce ONE short paragraph (max ~110 "
+    "words) the farmer can read at a glance.\n\n"
     "Communicate, in roughly this order:\n"
-    "1. Direction and magnitude of the week's price trend (% up / down / flat).\n"
-    "2. The realistic price band right now — min and max modal_price across the window.\n"
-    "3. Market coverage: how many mandis are in the data, and the dominant district.\n"
-    "4. One sentence on field condition combining vegetation_coverage_percent, "
-    "the healthy/stressed split, and where this year's NDVI sits versus the "
-    "prior years' mean if shown.\n"
-    "5. A short factual implication that links the price trend to the crop "
-    "signal — e.g. 'softening prices coincide with above-average canopy', "
-    "'firmer prices align with thinner crop signal'. State the linkage; do "
-    "NOT prescribe buying, selling, or holding.\n\n"
+    "1. The latest monthly modal price for the farmer's district and the "
+    "direction of the 6-month trend (up / down / flat).\n"
+    "2. How the district compares to the state average right now (above/below "
+    "by ₹X per quintal).\n"
+    "3. Month-over-month and year-over-year change percentages.\n"
+    "4. One sentence on field condition using vegetation_coverage_percent, the "
+    "healthy/stressed split, and where this year's NDVI sits versus the prior "
+    "years' mean if shown.\n"
+    "5. A short factual implication linking the price trend to the crop signal "
+    "— e.g. 'softening prices coincide with above-average canopy'. State the "
+    "linkage; do NOT prescribe buying, selling, or holding.\n\n"
     "Hard rules:\n"
     "- Use only numbers, dates, and names that appear in the JSON. Never invent.\n"
     "- No markdown. No bullet points. No headers. Plain prose only.\n"
     "- Keep the tone neutral and factual.\n"
-    "- If mandi records are absent, say so plainly and skip parts 1-3.\n"
+    "- If agmarknet trend is absent, say so plainly and skip parts 1-3.\n"
     "- If crop_health is absent, skip part 4 and the linkage in part 5."
 )
 
 
-def _safe_float(value, default=0.0):
+MONTH_NAMES = (
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december",
+)
+
+
+def _safe_float(value, default=None):
     try:
-        if value is None:
-            return float(default)
+        if value is None or value == "":
+            return default
         return float(value)
     except (TypeError, ValueError):
-        return float(default)
+        return default
+
+
+def _parse_price_key(key: str) -> Tuple[int, int]:
+    """`prices_may_2026` → (2026, 5). Returns (0, 0) on parse failure."""
+    parts = key.replace("prices_", "").split("_")
+    if len(parts) < 2:
+        return (0, 0)
+    try:
+        year = int(parts[-1])
+    except ValueError:
+        year = 0
+    try:
+        month_idx = MONTH_NAMES.index(parts[0].lower()) + 1
+    except ValueError:
+        month_idx = 0
+    return (year, month_idx)
+
+
+def _extract_series(row: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Pull `prices_<month>_<year>` columns out of a row, chronologically sorted."""
+    series: List[Dict[str, Any]] = []
+    for k, v in row.items():
+        if not isinstance(k, str) or not k.startswith("prices_"):
+            continue
+        price = _safe_float(v)
+        if price is None:
+            continue
+        year, month = _parse_price_key(k)
+        if year == 0:
+            continue
+        series.append(
+            {
+                "year": year,
+                "month": month,
+                "label": f"{MONTH_NAMES[month - 1].capitalize()} {year}",
+                "price": round(price, 2),
+            }
+        )
+    series.sort(key=lambda p: (p["year"], p["month"]))
+    return series
+
+
+def _find_district_row(
+    agmarknet_rates: Dict[str, Any], district: Optional[str]
+) -> Optional[Dict[str, Any]]:
+    rows = agmarknet_rates.get("rows")
+    if not isinstance(rows, list) or not rows:
+        return None
+    if district:
+        target = district.strip().lower()
+        for r in rows:
+            if isinstance(r, dict):
+                name = r.get("district")
+                if isinstance(name, str) and name.strip().lower() == target:
+                    return r
+    return None
 
 
 def _build_payload(
-    govdata_rates: List[Dict[str, Any]],
     agmarknet_rates: Optional[Dict[str, Any]],
     crop: Optional[str],
     district: Optional[str],
     state: Optional[str],
     crop_health: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    rates = govdata_rates if isinstance(govdata_rates, list) else []
-    all_records: List[Dict[str, Any]] = []
-    day_avgs: List[Dict[str, Any]] = []
-    markets: set = set()
-    district_counts: Dict[str, int] = {}
-    all_modal_prices: List[float] = []
+    agmarknet_block: Optional[Dict[str, Any]] = None
+    has_trend = False
 
-    for day in rates:
-        if not isinstance(day, dict):
-            continue
-        records = day.get("records")
-        if not isinstance(records, list):
-            continue
+    if isinstance(agmarknet_rates, dict) and agmarknet_rates.get("success"):
+        rows = agmarknet_rates.get("rows") or []
+        district_row = _find_district_row(agmarknet_rates, district)
+        district_series = _extract_series(district_row) if district_row else []
+        average_row = agmarknet_rates.get("average")
+        state_series = (
+            _extract_series(average_row) if isinstance(average_row, dict) else []
+        )
 
-        prices: List[float] = []
-        for record in records:
-            if not isinstance(record, dict):
-                continue
-            all_records.append(record)
-            market = record.get("market")
-            if isinstance(market, str) and market.strip():
-                markets.add(market.strip())
-            d_name = record.get("district")
-            if isinstance(d_name, str) and d_name.strip():
-                key = d_name.strip()
-                district_counts[key] = district_counts.get(key, 0) + 1
-            modal_price = _safe_float(record.get("modal_price"), 0.0)
-            if modal_price > 0:
-                prices.append(modal_price)
-                all_modal_prices.append(modal_price)
-
-        if prices:
-            day_avgs.append(
-                {
-                    "date": day.get("date"),
-                    "avg_modal_price": round(sum(prices) / len(prices), 2),
-                    "min_modal_price": round(min(prices), 2),
-                    "max_modal_price": round(max(prices), 2),
-                    "record_count": len(prices),
-                }
+        latest_district = district_series[-1]["price"] if district_series else None
+        first_district = district_series[0]["price"] if district_series else None
+        district_pct_change: Optional[float] = None
+        if (
+            latest_district is not None
+            and first_district is not None
+            and first_district > 0
+        ):
+            district_pct_change = round(
+                ((latest_district - first_district) / first_district) * 100.0, 2
             )
 
-    trend_pct: Optional[float] = None
-    if len(day_avgs) >= 2:
-        first = _safe_float(day_avgs[0].get("avg_modal_price"), 0.0)
-        last = _safe_float(day_avgs[-1].get("avg_modal_price"), 0.0)
-        if first > 0 and last > 0:
-            trend_pct = round(((last - first) / first) * 100.0, 2)
+        latest_state = state_series[-1]["price"] if state_series else None
+        latest_vs_state_avg: Optional[float] = None
+        if latest_district is not None and latest_state is not None:
+            latest_vs_state_avg = round(latest_district - latest_state, 2)
 
-    price_band: Optional[Dict[str, float]] = None
-    if all_modal_prices:
-        price_band = {
-            "min_modal_price": round(min(all_modal_prices), 2),
-            "max_modal_price": round(max(all_modal_prices), 2),
-            "avg_modal_price": round(sum(all_modal_prices) / len(all_modal_prices), 2),
+        change_mom = None
+        change_yoy = None
+        if district_row:
+            change_mom = _safe_float(district_row.get("change_over_previous_month"))
+            change_yoy = _safe_float(district_row.get("change_over_previous_year"))
+
+        agmarknet_block = {
+            "title": agmarknet_rates.get("title"),
+            "district_resolved": district_row.get("district") if district_row else None,
+            "district_series": district_series,
+            "state_average_series": state_series,
+            "latest_month_label": (
+                district_series[-1]["label"] if district_series else None
+            ),
+            "latest_district_modal_price": latest_district,
+            "latest_state_average_modal_price": latest_state,
+            "latest_vs_state_average_diff": latest_vs_state_avg,
+            "district_trend_pct_first_to_last": district_pct_change,
+            "change_over_previous_month_pct": change_mom,
+            "change_over_previous_year_pct": change_yoy,
+            "district_count": len([r for r in rows if isinstance(r, dict)]),
+            "price_unit": "INR per quintal",
         }
-
-    dominant_district: Optional[str] = None
-    if district_counts:
-        dominant_district = max(district_counts.items(), key=lambda kv: kv[1])[0]
-
-    agmarknet_summary: Optional[Dict[str, Any]] = None
-    if isinstance(agmarknet_rates, dict):
-        rows = agmarknet_rates.get("rows")
-        title = agmarknet_rates.get("title")
-        agmarknet_summary = {
-            "title": title if isinstance(title, str) else None,
-            "row_count": len(rows) if isinstance(rows, list) else 0,
-        }
+        has_trend = bool(district_series)
 
     payload: Dict[str, Any] = {
         "context": {
@@ -133,16 +180,8 @@ def _build_payload(
             "district": district,
             "state": state,
         },
-        "stats": {
-            "total_records": len(all_records),
-            "market_count": len(markets),
-            "markets_sample": sorted(markets)[:8],
-            "dominant_district": dominant_district,
-            "daily_averages": day_avgs,
-            "price_band_window": price_band,
-            "trend_pct_first_to_last": trend_pct,
-        },
-        "agmarknet": agmarknet_summary,
+        "agmarknet": agmarknet_block,
+        "has_trend": has_trend,
     }
     if crop_health:
         payload["crop_health"] = crop_health
@@ -150,61 +189,67 @@ def _build_payload(
 
 
 def _fallback_summary(payload: Dict[str, Any]) -> str:
-    stats = payload.get("stats", {})
-    total = stats.get("total_records", 0)
-    if total == 0:
-        return "No mandi price records were available for this query."
+    block = payload.get("agmarknet")
+    if not block or not payload.get("has_trend"):
+        return "No mandi price trend was available for this query."
 
-    market_count = stats.get("market_count", 0)
-    daily = stats.get("daily_averages") or []
-    latest_avg = daily[-1].get("avg_modal_price") if daily else None
-    trend = stats.get("trend_pct_first_to_last")
-    band = stats.get("price_band_window") or {}
-    band_text = (
-        f"Modal prices ranged ₹{band.get('min_modal_price')} to ₹{band.get('max_modal_price')}."
-        if band.get("min_modal_price") is not None and band.get("max_modal_price") is not None
-        else ""
-    )
-    trend_text = (
-        f"The week-on-week change is {trend:+.2f}%."
-        if isinstance(trend, (int, float))
-        else "Week-on-week trend could not be computed."
-    )
-    latest_text = (
-        f"Latest daily average modal price is ₹{latest_avg}."
-        if latest_avg is not None
-        else "Latest daily average is unavailable."
-    )
+    latest_label = block.get("latest_month_label")
+    latest = block.get("latest_district_modal_price")
+    latest_state = block.get("latest_state_average_modal_price")
+    diff = block.get("latest_vs_state_average_diff")
+    pct = block.get("district_trend_pct_first_to_last")
+    mom = block.get("change_over_previous_month_pct")
+    yoy = block.get("change_over_previous_year_pct")
+    district = block.get("district_resolved") or payload.get("context", {}).get("district")
+    crop = payload.get("context", {}).get("crop")
+
+    parts: List[str] = []
+    if crop and district and latest is not None and latest_label:
+        parts.append(
+            f"Latest {crop} modal price in {district} for {latest_label} is "
+            f"₹{latest}/quintal."
+        )
+    if latest_state is not None and diff is not None:
+        direction = "above" if diff >= 0 else "below"
+        parts.append(
+            f"That is ₹{abs(diff)} {direction} the state-wide average "
+            f"(₹{latest_state}/quintal)."
+        )
+    if pct is not None:
+        parts.append(
+            f"Over the last 6 months the district trend is "
+            f"{'+' if pct >= 0 else ''}{pct}%."
+        )
+    if mom is not None or yoy is not None:
+        mom_s = f"{mom}%" if mom is not None else "N/A"
+        yoy_s = f"{yoy}%" if yoy is not None else "N/A"
+        parts.append(f"Month-over-month change is {mom_s}; year-over-year is {yoy_s}.")
 
     crop_health = payload.get("crop_health") or {}
     field = crop_health.get("field_classification") or {}
-    health_text = ""
     if field:
         veg = field.get("vegetation_coverage_percent")
         healthy = field.get("healthy_percent")
         stressed = field.get("stressed_percent")
         if isinstance(veg, (int, float)) and isinstance(healthy, (int, float)) and isinstance(stressed, (int, float)):
-            health_text = (
-                f" Field signal shows {veg:.1f}% vegetation cover with "
+            parts.append(
+                f"Field signal shows {veg:.1f}% vegetation cover with "
                 f"{healthy:.1f}% healthy and {stressed:.1f}% stressed."
             )
 
-    return (
-        f"The dataset contains {total} mandi record(s) across {market_count} market(s). "
-        f"{latest_text} {band_text} {trend_text}{health_text}"
-    ).strip()
+    return " ".join(parts).strip() or "Mandi trend summary unavailable."
 
 
 def generate_mandi_summary(
-    govdata_rates: Optional[List[Dict[str, Any]]],
+    govdata_rates: Optional[List[Dict[str, Any]]] = None,  # legacy, ignored
     agmarknet_rates: Optional[Dict[str, Any]] = None,
     crop: Optional[str] = None,
     district: Optional[str] = None,
     state: Optional[str] = None,
     crop_health_summary: Optional[Dict[str, Any]] = None,
 ) -> str:
+    _ = govdata_rates  # accepted for backwards compatibility; not used
     payload = _build_payload(
-        govdata_rates if isinstance(govdata_rates, list) else [],
         agmarknet_rates,
         crop,
         district,
@@ -212,11 +257,11 @@ def generate_mandi_summary(
         crop_health_summary,
     )
 
-    if payload["stats"]["total_records"] == 0:
+    if not payload.get("has_trend"):
         return _fallback_summary(payload)
 
     user_message = (
-        "Read this mandi + crop-health JSON and produce the paragraph. "
+        "Read this agmarknet trend + crop-health JSON and produce the paragraph. "
         "Stick strictly to the figures shown. Do not advise on selling or holding.\n\n"
         f"{json.dumps(payload, ensure_ascii=True)}"
     )
