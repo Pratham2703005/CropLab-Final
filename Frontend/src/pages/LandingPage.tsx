@@ -4,7 +4,11 @@ import { Sprout, BarChart3, Map, Bell, ArrowRight, Check, Zap, Shield, TrendingU
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const handleGetStarted = () => {
+  const handleCreateFarm = () => {
+    navigate('/create-farm');
+  };
+
+  const handleOpenDashboard = () => {
     navigate('/dashboard');
   };
 
@@ -22,10 +26,16 @@ export function LandingPage() {
             </div>
             <div className="flex items-center space-x-3 animate-in stagger-1">
               <button
-                onClick={handleGetStarted}
+                onClick={handleOpenDashboard}
+                className="btn-ghost"
+              >
+                Open Dashboard
+              </button>
+              <button
+                onClick={handleCreateFarm}
                 className="btn-primary group"
               >
-                Get Started
+                Create Your Own Farm
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
@@ -54,11 +64,17 @@ export function LandingPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in stagger-3">
             <button
-              onClick={handleGetStarted}
+              onClick={handleCreateFarm}
               className="btn-primary btn-lg group shadow-glow"
             >
-              Open Dashboard
+              Create Your Own Farm
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
+              onClick={handleOpenDashboard}
+              className="btn-secondary btn-lg"
+            >
+              Open Dashboard
             </button>
           </div>
 
