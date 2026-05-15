@@ -183,45 +183,6 @@ export function LandingPage() {
             </div>
           </div>
         </div>
-
-        {/* Stats Section */}
-        <div className='mt-32 animate-in'>
-          <div className='card-elevated p-12 text-center'>
-            <h3 className='text-2xl font-bold text-neutral-900 mb-8'>
-              Trusted by farmers worldwide
-            </h3>
-            <div className='grid grid-cols-2 md:grid-cols-4 gap-8'>
-              <div>
-                <div className='text-3xl font-bold text-primary-600 mb-2'>
-                  10K+
-                </div>
-                <div className='text-sm text-neutral-600'>Active Farms</div>
-              </div>
-              <div>
-                <div className='text-3xl font-bold text-primary-600 mb-2'>
-                  250K
-                </div>
-                <div className='text-sm text-neutral-600'>Hectares Managed</div>
-              </div>
-              <div>
-                <div className='text-3xl font-bold text-primary-600 mb-2'>
-                  98%
-                </div>
-                <div className='text-sm text-neutral-600'>
-                  Satisfaction Rate
-                </div>
-              </div>
-              <div>
-                <div className='text-3xl font-bold text-primary-600 mb-2'>
-                  45%
-                </div>
-                <div className='text-sm text-neutral-600'>
-                  Avg Yield Increase
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
     </div>
   );
