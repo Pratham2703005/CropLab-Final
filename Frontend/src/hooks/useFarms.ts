@@ -4,6 +4,7 @@ import type { Farm, FarmFormData } from '../types/farm';
 
 /**
  * Unified hook for farm CRUD against localStorage.
+ * Handles data fetching and cleanup.
  */
 export const useFarms = () => {
   const {
@@ -21,9 +22,17 @@ export const useFarms = () => {
     clearGuestData,
   } = useGuestFarmStore();
 
+  // Fetch farms on mount
   useEffect(() => {
     fetchGuestFarms();
   }, [fetchGuestFarms]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
 
   const fetchFarms = useCallback(async () => {
     fetchGuestFarms();

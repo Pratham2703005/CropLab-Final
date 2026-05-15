@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -17,10 +17,19 @@ export default defineConfig({
       '@/services': path.resolve(__dirname, './src/services'),
     },
   },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    },
+  },
   server: {
     port: 3000,
     host: true,
-    open: true,
+    open: false,
   },
   build: {
     target: 'es2020',

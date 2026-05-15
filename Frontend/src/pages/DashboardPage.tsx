@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useFarms } from '../hooks/useFarms';
 import {
   Plus,
@@ -11,14 +11,14 @@ import {
 } from 'lucide-react';
 import { AddFarmCard, Card } from '@/components/card';
 import { formatHectares } from '@/utils';
+import { calculateTotalArea, getActiveCropsCount } from '@/utils/farmCalculations';
 import type { Farm } from '@/types/farm';
 import { toast } from 'robot-toast';
 
 export default function DashboardPage() {
-  const { farms, loading, error, fetchFarms, clearError } = useFarms();
-  const memoFetchFarms = useCallback(() => fetchFarms(), [fetchFarms]);
-  const memoClearError = useCallback(() => clearError(), [clearError]);
+  const { farms, loading, error } = useFarms();
 
+  // Handle error notifications at component level
   useEffect(() => {
     if (error) {
       toast.error({
@@ -29,21 +29,8 @@ export default function DashboardPage() {
     }
   }, [error]);
 
-  useEffect(() => {
-    memoFetchFarms();
-  }, [memoFetchFarms]);
-
-  useEffect(() => {
-    return () => {
-      memoClearError();
-    };
-  }, [memoClearError]);
-
-  const totalArea = farms.reduce((sum: number, farm: Farm) => {
-    const area = farm.area || 0;
-    return sum + area;
-  }, 0);
-  const activeCrops = new Set(farms.map((farm: Farm) => farm.crop)).size;
+  const totalArea = calculateTotalArea(farms);
+  const activeCrops = getActiveCropsCount(farms);
 
   return (
     <div className='min-h-screen gradient-mesh'>
