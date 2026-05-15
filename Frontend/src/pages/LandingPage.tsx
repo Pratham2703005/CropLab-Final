@@ -71,7 +71,7 @@ export function LandingPage() {
           {/* Trust Indicators */}
           <div className='mt-16 animate-in stagger-4'>
             <p className='text-sm text-neutral-500 mb-8'>
-              Trusted by 10,000+ farmers worldwide
+              Use Sentinel-2 Satellite to analyze your farm and get insights to improve your yield.
             </p>
             <div className='flex items-center justify-center space-x-8 opacity-60'>
               <div className='flex items-center space-x-2'>
