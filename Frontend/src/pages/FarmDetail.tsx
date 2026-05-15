@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
-import { useFarms } from '../hooks/useFarms';
-import { useHeatmap } from '../hooks/useHeatmap';
+import { useFarms } from '@/hooks/farm/useFarms';
+import { useHeatmap } from '@/hooks/farm/useHeatmap';
 import { useWeatherCalendar } from '../hooks/useWeatherCalendar';
 import { HeatmapOverlay } from '../components/map/HeatmapOverlay';
 import { MapLayerSelector } from '../components/map/MapLayerSelector';

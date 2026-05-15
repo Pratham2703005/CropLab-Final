@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { heatmapService } from '../services/fileDatabase';
-import type { HeatmapData } from '../types/farm';
+import { heatmapService } from '../../services/fileDatabase';
+import type { HeatmapData } from '../../types/farm';
 
 type LegacyHeatmapData = HeatmapData & {
   news_analysis?: string;

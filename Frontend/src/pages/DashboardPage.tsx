@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useFarms } from '../hooks/useFarms';
+import { useFarms } from '@/hooks/farm/useFarms';
 import {
   Plus,
   MapPin,

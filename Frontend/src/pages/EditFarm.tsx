@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useFarms } from '../hooks/useFarms';
+import { useFarms } from '@/hooks/farm/useFarms';
 import type { FarmFormData } from '../types/farm';
 import { CROP_OPTIONS, calculateCropDates } from '../types/farm';
 import { LeafletMap } from '../components/map/LeafletMap';

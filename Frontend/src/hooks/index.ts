@@ -1,6 +1,6 @@
 // Re-export all hooks
-export * from './useFarms';
-export * from './useHeatmap';
+export * from './farm/useFarms';
+export * from './farm/useHeatmap';
 export * from './useWeather';
 export * from './useWeatherCalendar';
 export * from './useNavigation'; // export as useFarmActions
