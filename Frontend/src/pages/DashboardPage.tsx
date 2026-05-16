@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useFarms } from '@/hooks/farm/useFarms';
 import {
   Plus,
@@ -12,11 +12,19 @@ import {
 import { AddFarmCard, Card } from '@/components/card';
 import { formatHectares } from '@/utils';
 import { calculateTotalArea, getActiveCropsCount } from '@/utils/farmCalculations';
+import { heatmapService } from '@/services/fileDatabase';
+import { useServerStatus } from '@/contexts/serverStatus';
+import { ServerStatusBanner } from '@/components/ServerStatusBanner';
 import type { Farm } from '@/types/farm';
 import { toast } from 'robot-toast';
 
 export default function DashboardPage() {
   const { farms, loading, error } = useFarms();
+  const { isReady } = useServerStatus();
+
+  // Farms whose heatmap is already cached locally — these open offline and
+  // are never locked while the backend wakes.
+  const cachedFarmIds = useMemo(() => heatmapService.getCachedFarmIds(), []);
 
   // Handle error notifications at component level
   useEffect(() => {
@@ -31,6 +39,11 @@ export default function DashboardPage() {
 
   const totalArea = calculateTotalArea(farms);
   const activeCrops = getActiveCropsCount(farms);
+
+  // A farm is locked while the backend is still waking up — unless it is a
+  // showcase farm (frozen output) or its heatmap is already cached locally.
+  const isFarmLocked = (farm: Farm): boolean =>
+    !farm.isShowcase && !isReady && !cachedFarmIds.has(farm.id);
 
   return (
     <div className='min-h-screen gradient-mesh'>
@@ -58,6 +71,9 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className='max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'>
         <div className='px-4 py-6 sm:px-0'>
+          {/* Backend wake-up status banner */}
+          <ServerStatusBanner />
+
           {/* Loading State */}
           {loading && (
             <div className='card-elevated p-8 mb-6 animate-in'>
@@ -180,7 +196,12 @@ export default function DashboardPage() {
 
                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                     {farms.map((farm: Farm, index: number) => (
-                      <Card key={farm.id} farm={farm} index={index} />
+                      <Card
+                        key={farm.id}
+                        farm={farm}
+                        index={index}
+                        locked={isFarmLocked(farm)}
+                      />
                     ))}
                     <AddFarmCard />
                   </div>

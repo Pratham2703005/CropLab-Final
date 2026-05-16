@@ -1,13 +1,15 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useFarms } from '@/hooks/farm/useFarms';
 import { useHeatmap } from '@/hooks/farm/useHeatmap';
 import { useWeatherCalendar } from '../hooks/useWeatherCalendar';
+import { useServerStatus } from '@/contexts/serverStatus';
+import { heatmapService } from '@/services/fileDatabase';
 import { HeatmapOverlay } from '../components/map/HeatmapOverlay';
 import { MapLayerSelector } from '../components/map/MapLayerSelector';
 import { SidebarTabs } from '../components/sidebar/SidebarTabs';
 import type { LayerType } from '../components/map/HeatmapOverlay';
-import { ArrowLeft, Sprout } from 'lucide-react';
+import { ArrowLeft, Sprout, Moon } from 'lucide-react';
 import type { Farm } from '@/types/farm';
 import { toast } from 'robot-toast';
 import {
@@ -32,6 +34,13 @@ export default function FarmDetail() {
     loading: calendarLoading,
     fetchCalendar,
   } = useWeatherCalendar();
+  const { isReady, status: serverStatus, startPolling } = useServerStatus();
+
+  // Whether this farm's heatmap is already cached locally (opens offline).
+  const heatmapCached = useMemo(
+    () => (id ? heatmapService.getCachedFarmIds().has(id) : false),
+    [id]
+  );
 
   const [farm, setFarm] = React.useState<Farm | null>(null);
   const [hasInitiallyFetchedHeatmap, setHasInitiallyFetchedHeatmap] =
@@ -98,10 +107,12 @@ export default function FarmDetail() {
 
   // Fetch heatmap data when farm is loaded (only once).
   // Showcase farms ship with frozen output, so they never fetch.
+  // Gated on `isReady` so it never POSTs to a sleeping backend.
   useEffect(() => {
     if (
       farm &&
       !farm.isShowcase &&
+      isReady &&
       farm.coordinates &&
       farm.coordinates.length > 0 &&
       !hasInitiallyFetchedHeatmap &&
@@ -122,7 +133,7 @@ export default function FarmDetail() {
         setHasInitiallyFetchedHeatmap(true);
       }
     }
-  }, [farm, fetchHeatmapData, hasInitiallyFetchedHeatmap, heatmapData]);
+  }, [farm, isReady, fetchHeatmapData, hasInitiallyFetchedHeatmap, heatmapData]);
 
   // Show error toast when heatmap error occurs
   useEffect(() => {
@@ -180,6 +191,80 @@ export default function FarmDetail() {
             <ArrowLeft className='h-4 w-4 mr-2' />
             Back to Dashboard
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Deep-link guard: a pasted /farm/:id URL bypasses the dashboard lock.
+  // A non-showcase farm with no cached heatmap needs the backend — if the
+  // server isn't ready, show an interstitial instead of erroring.
+  const blocked = !!farm && !farm.isShowcase && !isReady && !heatmapCached;
+  if (blocked) {
+    // 'error' (gave up) and 'stopped' (polling halted) both need a manual
+    // action — show the actionable screen rather than the waiting spinner.
+    const offline = serverStatus === 'error' || serverStatus === 'stopped';
+    return (
+      <div className='min-h-screen gradient-mesh flex items-center justify-center'>
+        <div className='card-elevated p-8 text-center max-w-md animate-in'>
+          <div className='mb-6'>
+            <div
+              className={`h-16 w-16 rounded-2xl flex items-center justify-center mx-auto ${
+                offline
+                  ? 'bg-gradient-to-br from-red-500 to-red-700'
+                  : 'bg-gradient-to-br from-amber-400 to-amber-600'
+              }`}
+            >
+              {offline ? (
+                <Sprout className='h-8 w-8 text-white' />
+              ) : (
+                <Moon className='h-8 w-8 text-white animate-pulse' />
+              )}
+            </div>
+          </div>
+          {offline ? (
+            <>
+              <h2 className='text-2xl font-bold text-neutral-900 mb-3'>
+                {serverStatus === 'stopped'
+                  ? 'Health polling stopped'
+                  : 'Backend Unreachable'}
+              </h2>
+              <p className='text-neutral-600 mb-6 leading-relaxed'>
+                {serverStatus === 'stopped'
+                  ? "This farm's satellite analysis needs the server. Start polling to wake it up."
+                  : "This farm's satellite analysis needs the server, which isn't responding. Showcase farms still work offline."}
+              </p>
+              <div className='flex items-center justify-center gap-3'>
+                <button
+                  onClick={startPolling}
+                  className='btn-primary inline-flex items-center'
+                >
+                  Start polling
+                </button>
+                <Link
+                  to='/dashboard'
+                  className='btn-secondary inline-flex items-center'
+                >
+                  <ArrowLeft className='h-4 w-4 mr-2' />
+                  Dashboard
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className='text-2xl font-bold text-neutral-900 mb-3'>
+                Waking up the backend…
+              </h2>
+              <p className='text-neutral-600 mb-6 leading-relaxed'>
+                This farm needs the server, which is on Render's free tier and
+                was asleep. It usually takes 30–60 seconds — this page will
+                open automatically once it's ready.
+              </p>
+              <div className='flex items-center justify-center'>
+                <div className='animate-spin rounded-full h-8 w-8 border-4 border-amber-200 border-t-amber-600'></div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

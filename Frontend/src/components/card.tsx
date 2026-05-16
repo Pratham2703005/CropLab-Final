@@ -1,29 +1,55 @@
 import type { Farm } from "@/types"
 import { formatHectares } from "@/utils"
 import { Link } from "react-router-dom"
-import { Plus } from "lucide-react"
+import { Plus, Moon, Lock, Pause } from "lucide-react"
 import cropData from "@/assets/p.json"
+import { useServerStatus } from "@/contexts/serverStatus"
 
-export const Card = ({ farm, index }: { farm: Farm; index: number }) => {
-  // Find the crop data to get the image URL
+type LockVariant = 'waking' | 'paused' | 'offline';
+
+const LOCK_PILL: Record<
+  LockVariant,
+  { label: string; classes: string; Icon: typeof Moon }
+> = {
+  waking: {
+    label: 'Waking…',
+    classes: 'bg-amber-100 text-amber-700',
+    Icon: Moon,
+  },
+  paused: {
+    label: 'Paused',
+    classes: 'bg-slate-100 text-slate-600',
+    Icon: Pause,
+  },
+  offline: {
+    label: 'Offline',
+    classes: 'bg-red-100 text-red-700',
+    Icon: Lock,
+  },
+};
+
+const CardBody = ({
+  farm,
+  lockVariant,
+}: {
+  farm: Farm;
+  lockVariant?: LockVariant;
+}) => {
   const cropInfo = cropData.find(crop => crop.name === farm.crop);
-  
+  const lock = lockVariant ? LOCK_PILL[lockVariant] : null;
+
   return (
-    <Link
-      to={`/farm/${farm.id}`}
-      key={index}
-      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white relative overflow-hidden block cursor-pointer"
-    >
+    <>
       {/* Background Image with Low Opacity */}
       {cropInfo?.imageUrl && (
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center opacity-10 z-0"
           style={{
             backgroundImage: `url(${cropInfo.imageUrl})`,
           }}
         />
       )}
-      
+
       {/* Content with relative positioning to stay above background */}
       <div className="relative z-10">
         {/* Header */}
@@ -33,6 +59,14 @@ export const Card = ({ farm, index }: { farm: Farm; index: number }) => {
             {farm.isShowcase && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
                 Showcase
+              </span>
+            )}
+            {lock && (
+              <span
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${lock.classes}`}
+              >
+                <lock.Icon className="h-2.5 w-2.5" />
+                {lock.label}
               </span>
             )}
           </div>
@@ -61,19 +95,60 @@ export const Card = ({ farm, index }: { farm: Farm; index: number }) => {
           </div>
         </div>
 
-        
-
         {/* Footer */}
         <div className="mt-3 text-xs text-gray-400">
           Created {new Date(farm.createdAt).toLocaleDateString()}
         </div>
       </div>
+    </>
+  );
+};
+
+export const Card = ({
+  farm,
+  index,
+  locked = false,
+}: {
+  farm: Farm;
+  index: number;
+  locked?: boolean;
+}) => {
+  const { status } = useServerStatus();
+
+  if (locked) {
+    const lockVariant: LockVariant =
+      status === 'error'
+        ? 'offline'
+        : status === 'stopped'
+          ? 'paused'
+          : 'waking';
+    const title = {
+      offline: 'Backend is offline — this farm needs the server',
+      paused: 'Health polling is stopped — resume it to open this farm',
+      waking: 'Waking up the server — this farm will unlock shortly',
+    }[lockVariant];
+    return (
+      <div
+        key={index}
+        aria-disabled
+        title={title}
+        className="border border-gray-200 rounded-lg p-4 bg-white relative overflow-hidden block opacity-60 cursor-not-allowed"
+      >
+        <CardBody farm={farm} lockVariant={lockVariant} />
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to={`/farm/${farm.id}`}
+      key={index}
+      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white relative overflow-hidden block cursor-pointer"
+    >
+      <CardBody farm={farm} />
     </Link>
-  )
-}
-
-
-
+  );
+};
 
 export const AddFarmCard = () => {
   return (

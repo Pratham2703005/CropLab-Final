@@ -23,6 +23,7 @@ export function calculatePolygonArea(coordinates: number[][]): number {
   return Math.abs(area) / 2;
 }
 import type { Farm, FarmFormData } from '../types/farm';
+import { isShowcaseFarmId } from './showcaseFarms';
 
 const GUEST_FARMS_KEY = 'CropLab_guest_farms';
 const GUEST_COUNTER_KEY = 'CropLab_guest_counter';
@@ -37,28 +38,52 @@ export type GuestFarm = Omit<Farm, 'userId'> & {
  */
 export class GuestFarmStorage {
   /**
-   * Get next available ID for guest farms
+   * Get next available ID for guest farms.
+   *
+   * Guest farms and showcase farms share the `guest_N` id scheme (showcase
+   * farms are exported guest farms). If the counter ever resets, a new guest
+   * farm could be assigned an id that collides with a showcase farm — which
+   * the dashboard would then silently drop as a duplicate. So skip any id
+   * already used by a showcase farm.
    */
   private static getNextId(): string {
-    const currentCounter = parseInt(
-      localStorage.getItem(GUEST_COUNTER_KEY) || '0',
-      10
-    );
-    const nextCounter = currentCounter + 1;
-    localStorage.setItem(GUEST_COUNTER_KEY, nextCounter.toString());
-    return `guest_${nextCounter}`;
+    let counter = parseInt(localStorage.getItem(GUEST_COUNTER_KEY) || '0', 10);
+    let id: string;
+    do {
+      counter += 1;
+      id = `guest_${counter}`;
+    } while (isShowcaseFarmId(id));
+    localStorage.setItem(GUEST_COUNTER_KEY, counter.toString());
+    return id;
   }
 
   /**
-   * Get all guest farms from localStorage
+   * Get all guest farms from localStorage.
+   *
+   * Self-heals any stored farm whose id collides with a showcase farm id
+   * (can happen if a farm was created while the counter was behind) by
+   * re-assigning a fresh non-colliding id and persisting the fix.
    */
   static getFarms(): GuestFarm[] {
     try {
       const farmsJson = localStorage.getItem(GUEST_FARMS_KEY);
       if (!farmsJson) return [];
 
-      const farms = JSON.parse(farmsJson);
-      return Array.isArray(farms) ? farms : [];
+      const parsed = JSON.parse(farmsJson);
+      if (!Array.isArray(parsed)) return [];
+
+      let changed = false;
+      const farms: GuestFarm[] = parsed.map((farm: GuestFarm) => {
+        if (farm && typeof farm.id === 'string' && isShowcaseFarmId(farm.id)) {
+          changed = true;
+          return { ...farm, id: this.getNextId() };
+        }
+        return farm;
+      });
+      if (changed) {
+        localStorage.setItem(GUEST_FARMS_KEY, JSON.stringify(farms));
+      }
+      return farms;
     } catch (error) {
       console.error('Error parsing guest farms from localStorage:', error);
       return [];

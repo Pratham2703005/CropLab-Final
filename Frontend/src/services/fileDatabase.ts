@@ -52,6 +52,16 @@ export const heatmapService = {
     return readFromStorage<HeatmapCacheEntry>(HEATMAP_CACHE_KEY);
   },
 
+  /**
+   * Set of farm ids that have a cached heatmap. Parses the cache once —
+   * use this instead of calling getByFarmId per card (the cache holds
+   * base64 PNGs and is expensive to re-parse).
+   */
+  getCachedFarmIds(): Set<string> {
+    const cache = readFromStorage<HeatmapCacheEntry>(HEATMAP_CACHE_KEY);
+    return new Set(cache.map(c => c.farmId));
+  },
+
   async clearByFarmId(farmId: string): Promise<boolean> {
     const cache = readFromStorage<HeatmapCacheEntry>(HEATMAP_CACHE_KEY);
     const filteredCache = cache.filter(c => c.farmId !== farmId);
