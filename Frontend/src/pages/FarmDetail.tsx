@@ -8,9 +8,8 @@ import { heatmapService } from '@/services/fileDatabase';
 import { HeatmapOverlay } from '../components/map/HeatmapOverlay';
 import { MapLayerSelector } from '../components/map/MapLayerSelector';
 import { SidebarTabs } from '../components/sidebar/SidebarTabs';
-import type { LayerType } from '../components/map/HeatmapOverlay';
 import { ArrowLeft, Sprout, Moon } from 'lucide-react';
-import type { Farm } from '@/types/farm';
+import type { Farm, MapMaskMode, MasksViewMode } from '@/types/farm';
 import { toast } from 'robot-toast';
 import {
   exportFarmDataAsCSV,
@@ -19,6 +18,7 @@ import {
   extractMapImagesFromHeatmapData,
 } from '../services/exportService';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
+import { DEFAULT_MASK_OPACITY, DEFAULT_MASK_VISIBILITY, DEFAULT_RANGE_OPACITY, MAP_MASK_MODES, MASKS_VIEW_MODES } from '@/constants/farm';
 
 export default function FarmDetail() {
   const { id } = useParams<{ id: string }>();
@@ -46,35 +46,14 @@ export default function FarmDetail() {
   const [farm, setFarm] = React.useState<Farm | null>(null);
   const [hasInitiallyFetchedHeatmap, setHasInitiallyFetchedHeatmap] =
     React.useState(false);
-  const [activeLayer, setActiveLayer] = useState<LayerType>('ndvi');
+  const [activeLayer, setActiveLayer] = useState<MapMaskMode>(MAP_MASK_MODES.NDVI);
   const [mapFocusRequestId, setMapFocusRequestId] = useState(0);
   const [exportLoading, setExportLoading] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const [maskOpacity, setMaskOpacity] = useState<Record<string, number>>({
-    red: 0.7,
-    yellow: 0.7,
-    green: 0.7,
-    brown: 0.7,
-    light_blue: 0.7,
-    purple: 0.7,
-    pink: 0.7,
-    light_green: 0.7,
-    dark_green: 0.7,
-    anomaly: 0.7,
-  });
-  const [maskVisibility, setMaskVisibility] = useState<Record<string, boolean>>({
-    red: true,
-    yellow: true,
-    green: true,
-    brown: true,
-    light_blue: true,
-    purple: true,
-    pink: true,
-    light_green: true,
-    dark_green: true,
-  });
-  const [viewMode, setViewMode] = useState<'masks' | 'range'>('masks');
-  const [rangeOpacity, setRangeOpacity] = useState(0.7);
+  const [maskOpacity, setMaskOpacity] = useState<Record<string, number>>(DEFAULT_MASK_OPACITY);
+  const [maskVisibility, setMaskVisibility] = useState<Record<string, boolean>>(DEFAULT_MASK_VISIBILITY);
+  const [viewMode, setViewMode] = useState<MasksViewMode>(MASKS_VIEW_MODES.MASKS);
+  const [rangeOpacity, setRangeOpacity] = useState(DEFAULT_RANGE_OPACITY);
 
   // Set farm when farms are loaded
   useEffect(() => {

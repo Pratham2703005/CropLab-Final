@@ -15,7 +15,7 @@ import {
   LocateFixed,
   Settings,
 } from 'lucide-react';
-import type { HeatmapData } from '@/types/farm';
+import type { HeatmapData, MapMaskMode, MasksViewMode } from '@/types/farm';
 import 'leaflet/dist/leaflet.css';
 import './HeatmapOverlay.css';
 
@@ -31,22 +31,18 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export type LayerType = 'ndvi' | 'ndwi' | 'ndre' | 'anomaly';
-
-export type LayerViewMode = 'masks' | 'range';
-
 interface HeatmapOverlayProps {
   coordinates: number[][]; // Array of [lng, lat] pairs
   heatmapData?: HeatmapData | null;
   height?: string;
   className?: string;
-  activeLayer?: LayerType;
-  onLayerChange?: (layer: LayerType) => void;
+  activeLayer?: MapMaskMode;
+  onLayerChange?: (layer: MapMaskMode) => void;
   maskOpacity?: Record<string, number>; // Individual mask opacity: { red: 0.7, yellow: 0.6, ... }
   maskVisibility?: Record<string, boolean>; // Individual mask visibility: { red: true, yellow: false, ... }
   anomalyTileUrl?: string | undefined; // Tile URL for anomaly map
   focusRequestId?: number;
-  viewMode?: LayerViewMode; // 'masks' shows discrete colors, 'range' shows gradient
+  viewMode?: MasksViewMode; // 'masks' shows discrete colors, 'range' shows gradient
   rangeOpacity?: number; // 0-1, only used in range mode
 }
 
@@ -317,7 +313,7 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
     useState<MaskOverlay[]>(createNdreMaskSet());
 
   // Helpers to get the active layer's masks
-  const masksMap: Partial<Record<LayerType, MaskOverlay[]>> = {
+  const masksMap: Partial<Record<MapMaskMode, MaskOverlay[]>> = {
     ndvi: ndviMasks,
     ndwi: ndwiMasks,
     ndre: ndreMasks,

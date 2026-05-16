@@ -1,3 +1,5 @@
+import type { MAP_MASK_MODES, MASKS_VIEW_MODES } from "@/constants/farm";
+
 export interface Farm {
   id: string;
   name: string;
@@ -14,6 +16,12 @@ export interface Farm {
   isShowcase?: boolean;
 }
 
+export type MasksViewMode =
+  (typeof MASKS_VIEW_MODES)[keyof typeof MASKS_VIEW_MODES];
+
+export type MapMaskMode = 
+  (typeof MAP_MASK_MODES)[keyof typeof MAP_MASK_MODES];
+  
 export interface FarmFormData {
   name: string;
   crop: string;
