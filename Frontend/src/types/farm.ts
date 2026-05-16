@@ -10,6 +10,8 @@ export interface Farm {
   createdAt: string;
   updatedAt: string;
   userId: string;
+  /** True for permanent, read-only farms baked into the build (no edit/delete). */
+  isShowcase?: boolean;
 }
 
 export interface FarmFormData {

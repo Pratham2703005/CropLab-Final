@@ -1,14 +1,18 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useGuestFarmStore } from '../../stores/guestFarmStore';
+import { SHOWCASE_FARMS, isShowcaseFarmId } from '../../utils/showcaseFarms';
 import type { Farm, FarmFormData } from '../../types/farm';
 
 /**
  * Unified hook for farm CRUD against localStorage.
- * Handles data fetching and cleanup.
+ *
+ * The farm list is the build-baked SHOWCASE_FARMS (always present, read-only)
+ * followed by the user's own guest farms from localStorage. Guest farms that
+ * share an id with a showcase farm are dropped so nothing renders twice.
  */
 export const useFarms = () => {
   const {
-    farms,
+    farms: guestFarms,
     currentFarm,
     loading,
     error,
@@ -16,7 +20,7 @@ export const useFarms = () => {
     addGuestFarm,
     updateGuestFarm,
     deleteGuestFarm,
-    getFarmById,
+    getFarmById: storeGetFarmById,
     setCurrentFarm,
     clearError,
     clearGuestData,
@@ -33,6 +37,24 @@ export const useFarms = () => {
       clearError();
     };
   }, [clearError]);
+
+  // Showcase farms first, then the user's own farms (deduped by id).
+  const farms = useMemo<Farm[]>(
+    () => [
+      ...SHOWCASE_FARMS,
+      ...guestFarms.filter(f => !isShowcaseFarmId(f.id)),
+    ],
+    [guestFarms]
+  );
+
+  const getFarmById = useCallback(
+    (id: string): Farm | undefined => {
+      const showcase = SHOWCASE_FARMS.find(f => f.id === id);
+      if (showcase) return showcase;
+      return storeGetFarmById(id);
+    },
+    [storeGetFarmById]
+  );
 
   const fetchFarms = useCallback(async () => {
     fetchGuestFarms();

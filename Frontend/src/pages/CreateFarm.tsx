@@ -15,7 +15,7 @@ import {
   Activity,
   Map,
 } from 'lucide-react';
-import { formatHectares } from '@/utils';
+import { formatHectares, formatDateForDisplay } from '@/utils';
 import cropData from '@/assets/p.json';
 import { toast } from 'robot-toast';
 
@@ -24,6 +24,8 @@ export const CreateFarm: React.FC = () => {
   const { addFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
+  const [displayPlantingDate, setDisplayPlantingDate] = useState<string>('');
+  const [displayHarvestDate, setDisplayHarvestDate] = useState<string>('');
 
   const {
     register,
@@ -34,6 +36,7 @@ export const CreateFarm: React.FC = () => {
   } = useForm<FarmFormData>();
 
   const plantingDate = watch('plantingDate');
+  const harvestDate = watch('harvestDate');
   const selectedCrop = watch('crop');
 
   // Auto-fill planting and harvest dates when crop is selected
@@ -42,6 +45,8 @@ export const CreateFarm: React.FC = () => {
       const { plantingDate: autoPlantingDate, harvestDate: autoHarvestDate } = calculateCropDates(selectedCrop);
       setValue('plantingDate' as keyof FarmFormData, autoPlantingDate);
       setValue('harvestDate' as keyof FarmFormData, autoHarvestDate);
+      setDisplayPlantingDate(formatDateForDisplay(autoPlantingDate));
+      setDisplayHarvestDate(formatDateForDisplay(autoHarvestDate));
     }
   }, [selectedCrop, setValue]);
 
@@ -55,6 +60,7 @@ export const CreateFarm: React.FC = () => {
         );
         const harvestDateString = harvestDate.toISOString().split('T')[0];
         setValue('harvestDate' as keyof FarmFormData, harvestDateString);
+        setDisplayHarvestDate(formatDateForDisplay(harvestDateString));
       }
     }
   }, [plantingDate, selectedCrop, setValue]);
@@ -71,6 +77,34 @@ export const CreateFarm: React.FC = () => {
   }, [error]);
 
   const onSubmit = async (data: FarmFormData) => {
+    // Validate dates exist
+    if (!data.plantingDate) {
+      toast.error({
+        message: 'Please select a planting date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    if (!data.harvestDate) {
+      toast.error({
+        message: 'Please select a harvest date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    if (data.harvestDate <= data.plantingDate) {
+      toast.error({
+        message: 'Harvest date must be after planting date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
     if (coordinates.length === 0) {
       toast.error({
         message: 'Please draw your farm boundary on the map',
@@ -225,22 +259,25 @@ export const CreateFarm: React.FC = () => {
                   <label className='block text-sm font-medium text-neutral-700'>
                     Planting Date *
                   </label>
-                  <div className='relative'>
-                    <input
-                      type='date'
-                      {...register('plantingDate', {
-                        required: 'Planting date is required',
-                      })}
-                      className='input pl-10'
-                    />
-                    <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <div className='space-y-1'>
+                    <div className='relative'>
+                      <input
+                        type='date'
+                        value={plantingDate}
+                        onChange={(e) => {
+                          setValue('plantingDate', e.target.value);
+                          setDisplayPlantingDate(formatDateForDisplay(e.target.value));
+                        }}
+                        className='input pl-10'
+                      />
+                      <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                    </div>
+                    {displayPlantingDate && (
+                      <p className='text-xs text-neutral-600'>
+                        {displayPlantingDate}
+                      </p>
+                    )}
                   </div>
-                  {errors.plantingDate && (
-                    <p className='text-red-500 text-sm flex items-center'>
-                      <Activity className='h-3 w-3 mr-1' />
-                      {errors.plantingDate.message}
-                    </p>
-                  )}
                 </div>
 
                 {/* Harvest Date */}
@@ -248,33 +285,36 @@ export const CreateFarm: React.FC = () => {
                   <label className='block text-sm font-medium text-neutral-700'>
                     Harvest Date *
                   </label>
-                  <div className='relative'>
-                    <input
-                      type='date'
-                      {...register('harvestDate', {
-                        required: 'Harvest date is required',
-                        validate: value => {
-                          if (plantingDate && value <= plantingDate) {
-                            return 'Harvest date must be after planting date';
-                          }
-                          return true;
-                        },
-                      })}
-                      className='input pl-10'
-                    />
-                    <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <div className='space-y-1'>
+                    <div className='relative'>
+                      <input
+                        type='date'
+                        value={harvestDate}
+                        onChange={(e) => {
+                          setValue('harvestDate', e.target.value);
+                          setDisplayHarvestDate(formatDateForDisplay(e.target.value));
+                        }}
+                        min={plantingDate}
+                        className='input pl-10'
+                      />
+                      <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                    </div>
+                    {displayHarvestDate && (
+                      <p className='text-xs text-neutral-600'>
+                        {displayHarvestDate}
+                      </p>
+                    )}
                   </div>
-                  {selectedCrop && plantingDate && (
-                    <p className='text-xs text-green-600 flex items-center'>
-                      <Activity className='h-3 w-3 mr-1' />
-                      Auto-calculated based on {selectedCrop} minimum growing
-                      duration
-                    </p>
-                  )}
-                  {errors.harvestDate && (
+                  {harvestDate && plantingDate && harvestDate <= plantingDate && (
                     <p className='text-red-500 text-sm flex items-center'>
                       <Activity className='h-3 w-3 mr-1' />
-                      {errors.harvestDate.message}
+                      Harvest date must be after planting date
+                    </p>
+                  )}
+                  {selectedCrop && plantingDate && (
+                    <p className='text-xs text-green-600 flex items-center mt-1'>
+                      <Activity className='h-3 w-3 mr-1' />
+                      Auto-calculated based on {selectedCrop} minimum growing duration
                     </p>
                   )}
                 </div>

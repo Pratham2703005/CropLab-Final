@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, parse } from 'date-fns';
 
 /**
  * Format a date string or Date object to a readable format
@@ -9,6 +9,35 @@ export function formatDate(
 ): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   return format(dateObj, formatString);
+}
+
+/**
+ * Format a date for input display: YYYY-MM-DD → DD-monthInLetters-YYYY
+ * e.g., "2024-01-15" → "15-January-2024"
+ */
+export function formatDateForDisplay(dateString: string | undefined): string {
+  if (!dateString) return '';
+  try {
+    const dateObj = parseISO(dateString);
+    return format(dateObj, 'dd-MMMM-yyyy');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Parse display format back to ISO format: DD-monthInLetters-YYYY → YYYY-MM-DD
+ * e.g., "15-January-2024" → "2024-01-15"
+ */
+export function parseDateFromDisplay(displayDate: string): string | null {
+  if (!displayDate) return null;
+  try {
+    const dateObj = parse(displayDate, 'dd-MMMM-yyyy', new Date());
+    if (isNaN(dateObj.getTime())) return null;
+    return format(dateObj, 'yyyy-MM-dd');
+  } catch {
+    return null;
+  }
 }
 
 

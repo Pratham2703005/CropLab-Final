@@ -163,12 +163,12 @@ export const MandiRatesPanel: React.FC<MandiRatesPanelProps> = ({
             </div>
           </div>
 
-          {/* 6-month trend chart: district vs state average */}
+          {/* Monthly trend chart: district vs state average */}
           {district && (
             <div className='border border-neutral-200 rounded-lg p-2 bg-white'>
               <div className='flex items-center justify-between mb-1.5 px-1'>
                 <div className='text-xs font-semibold text-neutral-900'>
-                  {district} — 6-month wholesale price trend
+                  {district} — wholesale price trend
                 </div>
                 <div className='text-[10px] text-neutral-500'>{unitLabel}</div>
               </div>

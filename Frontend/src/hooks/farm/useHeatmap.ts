@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { heatmapService } from '../../services/fileDatabase';
+import { getShowcaseHeatmap, isShowcaseFarmId } from '../../utils/showcaseFarms';
 import type { HeatmapData } from '../../types/farm';
 
 type LegacyHeatmapData = HeatmapData & {
@@ -62,6 +63,17 @@ export const useHeatmap = (farmId?: string): UseHeatmapReturn => {
 
   useEffect(() => {
     if (!farmId) return;
+
+    // Showcase farms ship with frozen heatmap output baked into the build —
+    // serve it directly, never touch the backend or localStorage.
+    const showcase = getShowcaseHeatmap(farmId);
+    if (showcase) {
+      setHeatmapData(normalizeHeatmapData(showcase));
+      setIsCached(true);
+      console.log('🏷️ Loaded baked-in showcase heatmap for farm:', farmId);
+      return;
+    }
+
     const loadCachedData = async () => {
       try {
         const cached = await heatmapService.getByFarmId(farmId);
@@ -87,6 +99,9 @@ export const useHeatmap = (farmId?: string): UseHeatmapReturn => {
       harvest_date?: string,
       crop?: string
     ) => {
+      // Showcase farms are frozen — never re-fetch from the backend.
+      if (isShowcaseFarmId(farmId)) return;
+
       setLoading(true);
       setError(null);
 

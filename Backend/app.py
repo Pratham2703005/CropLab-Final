@@ -343,7 +343,11 @@ async def generate_heatmap_lite(request: HeatmapRequest):
 
         def _rate_job():
             try:
-                return fetch_agmarknet(state=resolved_state, crop=request.crop)
+                return fetch_agmarknet(
+                    state=resolved_state,
+                    crop=request.crop,
+                    harvest_date=request.harvest_date,
+                )
             except Exception as e:
                 logger.warning(f"[lite] ⚠️  agmarknet fetch failed (non-blocking): {e}")
                 return None

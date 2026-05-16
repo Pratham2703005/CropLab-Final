@@ -96,10 +96,12 @@ export default function FarmDetail() {
     }
   }, [farm, fetchCalendar]);
 
-  // Fetch heatmap data when farm is loaded (only once)
+  // Fetch heatmap data when farm is loaded (only once).
+  // Showcase farms ship with frozen output, so they never fetch.
   useEffect(() => {
     if (
       farm &&
+      !farm.isShowcase &&
       farm.coordinates &&
       farm.coordinates.length > 0 &&
       !hasInitiallyFetchedHeatmap &&
@@ -183,7 +185,8 @@ export default function FarmDetail() {
     );
   }
 
-  const canEdit = true;
+  // Showcase farms are permanent and read-only — no edit / delete.
+  const canEdit = !farm?.isShowcase;
 
   const handleDelete = async () => {
     if (

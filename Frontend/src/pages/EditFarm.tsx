@@ -6,7 +6,7 @@ import type { FarmFormData } from '../types/farm';
 import { CROP_OPTIONS, calculateCropDates } from '../types/farm';
 import { LeafletMap } from '../components/map/LeafletMap';
 import { ArrowLeft, Sprout, MapPin, Calendar, Save, X } from 'lucide-react';
-import { formatHectares } from '@/utils';
+import { formatHectares, formatDateForDisplay } from '@/utils';
 import { toast } from 'robot-toast';
 import { heatmapService } from '../services/fileDatabase';
 
@@ -16,8 +16,17 @@ export default function EditFarm() {
   const { getFarmById, updateFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
+  const [displayPlantingDate, setDisplayPlantingDate] = useState<string>('');
+  const [displayHarvestDate, setDisplayHarvestDate] = useState<string>('');
 
   const farm = id ? getFarmById(id) : null;
+
+  // Showcase farms are permanent and read-only — bounce edit attempts.
+  useEffect(() => {
+    if (farm?.isShowcase) {
+      navigate(`/farm/${farm.id}`, { replace: true });
+    }
+  }, [farm, navigate]);
 
   const {
     register,
@@ -28,6 +37,7 @@ export default function EditFarm() {
   } = useForm<FarmFormData>();
 
   const plantingDate = watch('plantingDate');
+  const harvestDate = watch('harvestDate');
   const selectedCrop = watch('crop');
 
   useEffect(() => {
@@ -35,18 +45,13 @@ export default function EditFarm() {
       // Populate form with existing farm data
       setValue('name', farm.name);
       setValue('crop', farm.crop);
+      setValue('plantingDate', farm.plantingDate || '');
+      setValue('harvestDate', farm.harvestDate || '');
 
-      // Format dates properly for the date input (YYYY-MM-DD)
-      const formatDateForInput = (dateString?: string): string | undefined => {
-        if (!dateString) return undefined;
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
-      };
+      // Set display dates
+      setDisplayPlantingDate(formatDateForDisplay(farm.plantingDate));
+      setDisplayHarvestDate(formatDateForDisplay(farm.harvestDate));
 
-      setValue('plantingDate', formatDateForInput(farm.plantingDate) || '');
-      setValue('harvestDate', formatDateForInput(farm.harvestDate) || '');
-
-      // Removed unused plantingDate and harvestDate state declarations
       // Set coordinates and area
       setCoordinates(farm?.coordinates);
       setArea(farm?.area);
@@ -55,11 +60,13 @@ export default function EditFarm() {
 
   // Auto-fill planting and harvest dates when crop is changed
   useEffect(() => {
-    if (selectedCrop && !farm) {
+    if (selectedCrop && farm && selectedCrop !== farm.crop) {
       // Only auto-fill if crop changed manually, not on initial load
       const { plantingDate: autoPlantingDate, harvestDate: autoHarvestDate } = calculateCropDates(selectedCrop);
       setValue('plantingDate' as keyof FarmFormData, autoPlantingDate);
       setValue('harvestDate' as keyof FarmFormData, autoHarvestDate);
+      setDisplayPlantingDate(formatDateForDisplay(autoPlantingDate));
+      setDisplayHarvestDate(formatDateForDisplay(autoHarvestDate));
     }
   }, [selectedCrop, farm, setValue]);
 
@@ -126,6 +133,34 @@ export default function EditFarm() {
   }
 
   const onSubmit = async (data: FarmFormData) => {
+    // Validate dates
+    if (!data.plantingDate) {
+      toast.error({
+        message: 'Please select a planting date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    if (!data.harvestDate) {
+      toast.error({
+        message: 'Please select a harvest date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    if (data.harvestDate <= data.plantingDate) {
+      toast.error({
+        message: 'Harvest date must be after planting date',
+        robotVariant: '/wheat-error.png',
+        autoClose: 3000,
+      });
+      return;
+    }
+
     if (coordinates.length === 0) {
       toast.error({
         message: 'Please draw your farm boundary on the map',
@@ -299,18 +334,22 @@ export default function EditFarm() {
                   <label className='block text-sm font-medium text-neutral-700 mb-2'>
                     Planting Date *
                   </label>
-                  <input
-                    type='date'
-                    {...register('plantingDate', {
-                      required: 'Planting date is required',
-                    })}
-                    className='input'
-                  />
-                  {errors.plantingDate && (
-                    <p className='text-red-500 text-sm mt-1'>
-                      {errors.plantingDate.message}
-                    </p>
-                  )}
+                  <div className='space-y-1'>
+                    <input
+                      type='date'
+                      value={plantingDate}
+                      onChange={(e) => {
+                        setValue('plantingDate', e.target.value);
+                        setDisplayPlantingDate(formatDateForDisplay(e.target.value));
+                      }}
+                      className='input'
+                    />
+                    {displayPlantingDate && (
+                      <p className='text-xs text-neutral-600'>
+                        {displayPlantingDate}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Harvest Date */}
@@ -318,22 +357,26 @@ export default function EditFarm() {
                   <label className='block text-sm font-medium text-neutral-700 mb-2'>
                     Harvest Date *
                   </label>
-                  <input
-                    type='date'
-                    {...register('harvestDate', {
-                      required: 'Harvest date is required',
-                      validate: value => {
-                        if (plantingDate && value <= plantingDate) {
-                          return 'Harvest date must be after planting date';
-                        }
-                        return true;
-                      },
-                    })}
-                    className='input'
-                  />
-                  {errors.harvestDate && (
+                  <div className='space-y-1'>
+                    <input
+                      type='date'
+                      value={harvestDate}
+                      onChange={(e) => {
+                        setValue('harvestDate', e.target.value);
+                        setDisplayHarvestDate(formatDateForDisplay(e.target.value));
+                      }}
+                      min={plantingDate}
+                      className='input'
+                    />
+                    {displayHarvestDate && (
+                      <p className='text-xs text-neutral-600'>
+                        {displayHarvestDate}
+                      </p>
+                    )}
+                  </div>
+                  {harvestDate && plantingDate && harvestDate <= plantingDate && (
                     <p className='text-red-500 text-sm mt-1'>
-                      {errors.harvestDate.message}
+                      Harvest date must be after planting date
                     </p>
                   )}
                 </div>

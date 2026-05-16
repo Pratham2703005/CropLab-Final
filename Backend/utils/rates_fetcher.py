@@ -270,17 +270,68 @@ def _price_key_to_title(key: str) -> str:
     return f"Prices {month_label}, {year} (Rs./Quintal)"
 
 
+def _add_months(year: int, month: int, delta: int) -> Tuple[int, int]:
+    """Shift a (year, month) by `delta` months (delta may be negative)."""
+    idx = (year * 12 + (month - 1)) + delta
+    return idx // 12, (idx % 12) + 1
+
+
+# Some crops trade under a different commodity name depending on the state —
+# e.g. Punjab mandis trade "Paddy" (raw harvested grain), not milled "Rice".
+# When the primary commodity yields no rows, retry with the alternates.
+COMMODITY_FALLBACK: Dict[str, List[int]] = {
+    "rice": [3, 2],            # Rice → Paddy(Common)
+    "paddy": [2, 3],           # Paddy → Rice
+    "soybean": [13],
+    "soyabeans": [13],
+}
+
+
+def _resolve_commodity_chain(crop_lower: str) -> List[int]:
+    """Return the ordered list of agmarknet commodity IDs to try for a crop."""
+    if crop_lower in COMMODITY_FALLBACK:
+        return COMMODITY_FALLBACK[crop_lower]
+    primary = COMMODITY_ID_MAP.get(crop_lower)
+    return [primary] if primary is not None else [COMMODITY_ID_DEFAULT]
+
+
+def _fetch_trend_for_commodity(
+    state_id: int,
+    commodity_id: int,
+    anchor_year: int,
+    anchor_month: int,
+    months: int,
+    timeout: float,
+) -> List[Tuple[Tuple[int, int], Optional[Dict[str, Any]]]]:
+    """Run `months` sequential calls ending at the anchor month (newest-first)."""
+    targets = _months_back(anchor_year, anchor_month, months)
+    responses: List[Tuple[Tuple[int, int], Optional[Dict[str, Any]]]] = []
+    for idx, (year, month) in enumerate(targets):
+        if idx > 0 and INTER_CALL_DELAY_SEC > 0:
+            time.sleep(INTER_CALL_DELAY_SEC)
+        body = _fetch_agmarknet_month(state_id, commodity_id, year, month, timeout)
+        responses.append(((year, month), body))
+    return responses
+
+
 def fetch_agmarknet(
     state: Optional[str],
     crop: Optional[str],
     timeout: float = 8.0,
     months: int = DEFAULT_TREND_MONTHS,
+    harvest_date: Optional[date] = None,
 ) -> Optional[Dict[str, Any]]:
     """Fetch a multi-month wholesale-prices trend (district-wise) for state+crop.
 
-    Makes `months` sequential calls (newest first) with a small inter-call delay,
-    then merges the per-district price columns into a single response shaped like
-    the single-month payload — so the existing frontend picks it up unchanged.
+    The trend window ends at an anchor month:
+      - If `harvest_date` is in the past, anchor 2 months after harvest so the
+        window covers the crop's actual selling season (mandi prices only
+        exist when the crop is being traded — paddy data is empty off-season).
+      - Otherwise anchor on the current month.
+
+    Tries the crop's commodity-ID chain (e.g. Rice → Paddy) so state-specific
+    naming doesn't return an empty chart. Merges per-district price columns
+    into one response shaped like the single-month payload.
     """
     if not state or not crop:
         logger.info("[rates] agmarknet requires state + crop; skipping")
@@ -294,44 +345,61 @@ def fetch_agmarknet(
         logger.warning(f"[rates] agmarknet: unmapped state='{state}'")
         return None
 
-    commodity_id = COMMODITY_ID_MAP.get(crop_lower, COMMODITY_ID_DEFAULT)
-    if crop_lower not in COMMODITY_ID_MAP:
-        logger.info(
-            f"[rates] agmarknet: unmapped crop='{crop}', falling back to "
-            f"commodity_id={COMMODITY_ID_DEFAULT}"
-        )
-
     today = date.today()
-    cache_key = (state_lower, crop_lower, months, today.year, today.month)
+    # Anchor the window on the selling season when the crop is already harvested.
+    if harvest_date and harvest_date < today:
+        anchor_year, anchor_month = _add_months(
+            harvest_date.year, harvest_date.month, 2
+        )
+        # Don't anchor in the future.
+        if (anchor_year, anchor_month) > (today.year, today.month):
+            anchor_year, anchor_month = today.year, today.month
+    else:
+        anchor_year, anchor_month = today.year, today.month
+
+    commodity_chain = _resolve_commodity_chain(crop_lower)
+
+    cache_key = (state_lower, crop_lower, months, anchor_year, anchor_month)
     now = time.time()
     cached, age, fresh = _cache_get(_agmarknet_cache, cache_key, now)
     if fresh:
         logger.info(f"[rates] agmarknet cache hit ({int(age)}s old, {months}-month trend)")
         return cached
 
-    # Sequential fetch, newest-first.
-    targets = _months_back(today.year, today.month, months)
-    responses: List[Tuple[Tuple[int, int], Optional[Dict[str, Any]]]] = []
-    for idx, (year, month) in enumerate(targets):
-        if idx > 0 and INTER_CALL_DELAY_SEC > 0:
-            time.sleep(INTER_CALL_DELAY_SEC)
-        body = _fetch_agmarknet_month(state_id, commodity_id, year, month, timeout)
-        responses.append(((year, month), body))
-
-    merged = _merge_trend_responses(responses, state.title(), crop.title())
+    merged: Optional[Dict[str, Any]] = None
+    hard_failed = True
+    for commodity_id in commodity_chain:
+        responses = _fetch_trend_for_commodity(
+            state_id, commodity_id, anchor_year, anchor_month, months, timeout
+        )
+        if any(isinstance(b, dict) for _, b in responses):
+            hard_failed = False
+        candidate = _merge_trend_responses(responses, state.title(), crop.title())
+        if candidate is not None:
+            merged = candidate
+            if commodity_id != commodity_chain[0]:
+                logger.info(
+                    f"[rates] agmarknet: '{crop}' empty under primary commodity; "
+                    f"used fallback commodity_id={commodity_id}"
+                )
+            break
 
     if merged is None:
-        # All calls failed: serve stale if we have any.
         if cached is not None:
-            logger.info(f"[rates] agmarknet trend fetches all failed; serving stale cache ({int(age)}s old)")
+            logger.info(f"[rates] agmarknet trend empty/failed; serving stale cache ({int(age)}s old)")
             return cached
+        reason = "all calls failed" if hard_failed else "no rows in any month"
+        logger.warning(
+            f"[rates] agmarknet trend unavailable for {crop} in {state} ({reason})"
+        )
         _cache_put(_agmarknet_cache, cache_key, None, _AGMARKNET_TTL_EMPTY, now)
         return None
 
     months_in_merged = len(merged.get("data", [{}, {}])[1].get("columns", []))
     logger.info(
         f"[rates] agmarknet trend merged: {len(merged['rows'])} districts × "
-        f"{months_in_merged} months for {crop.title()} in {state.title()}"
+        f"{months_in_merged} months for {crop.title()} in {state.title()} "
+        f"(window ending {anchor_year}-{anchor_month:02d})"
     )
     _cache_put(_agmarknet_cache, cache_key, merged, _AGMARKNET_TTL_OK, now)
     return merged
