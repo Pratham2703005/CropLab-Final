@@ -10,10 +10,10 @@ import {
   TrendingUp,
   Award,
 } from 'lucide-react';
-import { useFarmActions } from '@/hooks';
+import { useCropLabNavigation } from '@/hooks';
 
 export function LandingPage() {
-  const { handleCreateFarm, handleOpenDashboard } = useFarmActions();
+  const { navigateToCreateFarm, navigateToDashboard } = useCropLabNavigation();
 
   return (
     <div className='min-h-screen gradient-mesh'>
@@ -54,14 +54,14 @@ export function LandingPage() {
 
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center animate-in stagger-3'>
             <button
-              onClick={handleCreateFarm}
+              onClick={navigateToCreateFarm}
               className='btn-primary btn-lg group shadow-glow'
             >
               Create Your Own Farm
               <ArrowRight className='ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform' />
             </button>
             <button
-              onClick={handleOpenDashboard}
+              onClick={navigateToDashboard}
               className='btn-secondary btn-lg'
             >
               Open Dashboard

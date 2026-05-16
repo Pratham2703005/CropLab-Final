@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useFarms } from '@/hooks/farm/useFarms';
 import type { FarmFormData } from '../types/farm';
@@ -9,10 +9,11 @@ import { ArrowLeft, Sprout, MapPin, Calendar, Save, X } from 'lucide-react';
 import { formatHectares, formatDateForDisplay } from '@/utils';
 import { toast } from 'robot-toast';
 import { heatmapService } from '../services/fileDatabase';
+import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 
 export default function EditFarm() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateToFarmDetails} = useCropLabNavigation();
   const { getFarmById, updateFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
@@ -24,9 +25,9 @@ export default function EditFarm() {
   // Showcase farms are permanent and read-only — bounce edit attempts.
   useEffect(() => {
     if (farm?.isShowcase) {
-      navigate(`/farm/${farm.id}`, { replace: true });
+      navigateToFarmDetails(farm.id);
     }
-  }, [farm, navigate]);
+  }, [farm, navigateToFarmDetails]);
 
   const {
     register,
@@ -192,7 +193,7 @@ export default function EditFarm() {
         autoClose: 3000,
       });
       // Only navigate after the update is complete
-      setTimeout(() => navigate(`/farm/${farm.id}`), 500);
+      setTimeout(() => navigateToFarmDetails(farm.id), 500);
     } catch (error) {
       console.error('Error updating farm:', error);
       // Error is already handled by the store

@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useFarms } from '@/hooks/farm/useFarms';
 import { useHeatmap } from '@/hooks/farm/useHeatmap';
@@ -18,11 +18,12 @@ import {
   createMapImagesZip,
   extractMapImagesFromHeatmapData,
 } from '../services/exportService';
+import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 
 export default function FarmDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { getFarmById, deleteFarm, loading, farms } = useFarms();
+  const { navigateToDashboard } = useCropLabNavigation();
   const {
     heatmapData,
     loading: heatmapLoading,
@@ -286,7 +287,7 @@ export default function FarmDetail() {
           robotVariant: '/wheat-base.png',
           autoClose: 3000,
         });
-        setTimeout(() => navigate('/dashboard'), 500);
+        setTimeout(() => navigateToDashboard(), 500);
       } catch (error) {
         console.error('Error deleting farm:', error);
       }

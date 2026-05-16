@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 import { useForm } from 'react-hook-form';
 import { useFarms } from '@/hooks/farm/useFarms';
 import type { FarmFormData } from '../types/farm';
@@ -20,7 +20,7 @@ import cropData from '@/assets/p.json';
 import { toast } from 'robot-toast';
 
 export const CreateFarm: React.FC = () => {
-  const navigate = useNavigate();
+  const { navigateToCreateFarm, navigateToDashboard } = useCropLabNavigation();
   const { addFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
@@ -130,7 +130,7 @@ export const CreateFarm: React.FC = () => {
         robotVariant: '/wheat-base.png',
         autoClose: 3000,
       });
-      setTimeout(() => navigate('/dashboard'), 500);
+      setTimeout(() => navigateToCreateFarm(), 500);
     } catch (error) {
       console.error('Error creating farm:', error);
     }
@@ -152,7 +152,7 @@ export const CreateFarm: React.FC = () => {
           <div className='flex justify-between items-center py-4'>
             <div className='flex items-center animate-in'>
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigateToDashboard()}
                 className='mr-4 p-2.5 rounded-xl text-neutral-400 hover:text-neutral-600 hover:bg-white/50 transition-all'
               >
                 <ArrowLeft className='h-5 w-5' />
@@ -428,7 +428,7 @@ export const CreateFarm: React.FC = () => {
             <div className='flex justify-between items-center pt-8 border-t border-neutral-200'>
               <button
                 type='button'
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigateToDashboard()}
                 className='btn-ghost group'
               >
                 <ArrowLeft className='h-4 w-4 mr-2 group-hover:-translate-x-0.5 transition-transform' />

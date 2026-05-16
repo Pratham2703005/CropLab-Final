@@ -3,4 +3,4 @@ export * from './farm/useFarms';
 export * from './farm/useHeatmap';
 export * from './useWeather';
 export * from './useWeatherCalendar';
-export * from './useNavigation'; // export as useFarmActions
+export * from './useCropLabNavigation'; // export as useCropLabNavigation
