@@ -16,16 +16,12 @@ needed. They are read-only: no edit or delete buttons.
 
 1. Open the app in the browser where you created the farms.
 2. Open each farm once so its heatmap output gets cached.
-3. Get the snippet onto your clipboard:
-   ```
-   npm run export:showcase
-   ```
-   (prints `export-showcase-farms.js` to the terminal — copy it; or just open
-   that file and copy it directly)
-4. In the app, open DevTools (F12) → **Console**, paste the snippet, press Enter.
-5. `showcase-farms.json` downloads.
-6. Move it to `src/assets/showcase-farms.json`, overwriting the old file.
-7. Reload / rebuild — the farms are now permanent on the dashboard.
+3. Run `npm run export:showcase` — this prints the browser snippet to your terminal.
+4. Copy the printed snippet in terminal.
+5. In the app, open DevTools (F12) → **Console**, paste the snippet, press Enter.
+6. `showcase-farms.json` downloads.
+7. Move it to `src/assets/showcase-farms.json`, overwriting the old file.
+8. Reload / rebuild — the farms are now permanent on the dashboard.
 
 ## Process in short
 
