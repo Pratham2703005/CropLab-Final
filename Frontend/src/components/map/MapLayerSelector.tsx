@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info, Eye, EyeOff } from 'lucide-react';
-import type { RangeMeta } from '@/types/farm';
-
-export type MapLayerType = 'ndvi' | 'ndre' | 'ndwi' | 'anomaly';
-export type LayerViewMode = 'masks' | 'range';
+import type { MapMaskMode, MasksViewMode, RangeMeta } from '@/types/farm';
 
 interface MaskOpacity {
   red?: number;
@@ -32,20 +29,20 @@ interface MaskVisibility {
 }
 
 interface MapLayerSelectorProps {
-  activeLayer: MapLayerType;
-  onLayerChange: (layer: MapLayerType) => void;
+  activeLayer: MapMaskMode;
+  onLayerChange: (layer: MapMaskMode) => void;
   maskOpacity: MaskOpacity;
   onOpacityChange: (maskId: string, opacity: number) => void;
   maskVisibility?: MaskVisibility;
   onVisibilityChange?: (maskId: string, visible: boolean) => void;
-  viewMode?: LayerViewMode;
-  onViewModeChange?: (mode: LayerViewMode) => void;
+  viewMode?: MasksViewMode;
+  onViewModeChange?: (mode: MasksViewMode) => void;
   rangeOpacity?: number;
   onRangeOpacityChange?: (opacity: number) => void;
   rangeMeta?: RangeMeta | null; // gradient meta for the active layer
 }
 
-const LAYER_CONFIG: Record<MapLayerType, { label: string; shortLabel: string; description: string; masks: string[] }> = {
+const LAYER_CONFIG: Record<MapMaskMode, { label: string; shortLabel: string; description: string; masks: string[] }> = {
   ndvi: {
     label: 'Health Map (NDVI)',
     shortLabel: 'NDVI',
@@ -638,7 +635,7 @@ export const MapLayerSelector: React.FC<MapLayerSelectorProps> = ({
             return (
               <button
                 key={layerId}
-                onClick={() => onLayerChange(layerId as MapLayerType)}
+                onClick={() => onLayerChange(layerId as MapMaskMode)}
                 className={`flex-1 px-3 py-2.5 text-xs font-medium transition-all relative whitespace-nowrap ${
                   isActive
                     ? 'text-primary-600 bg-primary-50'
