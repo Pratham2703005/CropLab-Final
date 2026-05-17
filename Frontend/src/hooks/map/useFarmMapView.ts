@@ -1,7 +1,10 @@
 import { useState, useRef } from 'react';
 import L from 'leaflet';
 import type { MapStyle } from '@/types';
-import { getPolygonCenter, getZoomLevel, toLeafletCoords } from '@/utils/map';
+import { getPolygonCenter, getZoomLevel, toLeafletCoords, initializeLeafletIcons } from '@/utils/map';
+
+// Initialize Leaflet icons on module load
+initializeLeafletIcons();
 import { MAP_STYLES } from '@/constants/map';
 
 /**

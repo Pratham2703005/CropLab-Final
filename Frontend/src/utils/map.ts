@@ -1,3 +1,24 @@
+import L from 'leaflet';
+
+/**
+ * Initialize Leaflet default marker icons.
+ * Fixes broken marker icons in Vite/bundled environments by explicitly setting CDN URLs.
+ * 
+ * Should be called once at app startup or imported in components that use Leaflet.
+ */
+export function initializeLeafletIcons(): void {
+  const proto = L.Icon.Default.prototype as unknown as Record<string, unknown>;
+  delete proto._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+}
+
 /**
  * Calculates the center point (centroid) of a polygon defined by coordinates
  * @param coordinates - Array of [lat, lng] pairs

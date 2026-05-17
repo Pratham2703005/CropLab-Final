@@ -1,4 +1,5 @@
 import type { MAP_STYLES } from "@/constants/map";
+import type { HeatmapData, MapMaskMode, MasksViewMode } from "./farm";
 
 export type MapStyle = 
   (typeof MAP_STYLES)[keyof typeof MAP_STYLES];
@@ -45,4 +46,28 @@ export interface MapViewport {
   center: [number, number];
   zoom: number;
   bounds?: MapBounds;
+}
+
+export interface HeatmapOverlayProps {
+  coordinates: number[][]; // Array of [lng, lat] pairs
+  heatmapData?: HeatmapData | null;
+  height?: string;
+  className?: string;
+  activeLayer?: MapMaskMode;
+  onLayerChange?: (layer: MapMaskMode) => void;
+  maskOpacity?: Record<string, number>; // Individual mask opacity: { red: 0.7, yellow: 0.6, ... }
+  maskVisibility?: Record<string, boolean>; // Individual mask visibility: { red: true, yellow: false, ... }
+  anomalyTileUrl?: string | undefined; // Tile URL for anomaly map
+  focusRequestId?: number;
+  viewMode?: MasksViewMode; // 'masks' shows discrete colors, 'range' shows gradient
+  rangeOpacity?: number; // 0-1, only used in range mode
+}
+
+export interface MaskOverlay {
+  id: string;
+  name: string;
+  color: string;
+  base64Data: string;
+  opacity: number;
+  visible: boolean;
 }

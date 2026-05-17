@@ -15,45 +15,14 @@ import {
   LocateFixed,
   Settings,
 } from 'lucide-react';
-import type { HeatmapData, MapMaskMode, MasksViewMode } from '@/types/farm';
 import 'leaflet/dist/leaflet.css';
 import './HeatmapOverlay.css';
+import { initializeLeafletIcons } from '@/utils/map';
+import type { MapMaskMode } from '@/types/farm';
+import type { HeatmapOverlayProps, MaskOverlay } from '@/types';
 
-// Fix for default markers
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-interface HeatmapOverlayProps {
-  coordinates: number[][]; // Array of [lng, lat] pairs
-  heatmapData?: HeatmapData | null;
-  height?: string;
-  className?: string;
-  activeLayer?: MapMaskMode;
-  onLayerChange?: (layer: MapMaskMode) => void;
-  maskOpacity?: Record<string, number>; // Individual mask opacity: { red: 0.7, yellow: 0.6, ... }
-  maskVisibility?: Record<string, boolean>; // Individual mask visibility: { red: true, yellow: false, ... }
-  anomalyTileUrl?: string | undefined; // Tile URL for anomaly map
-  focusRequestId?: number;
-  viewMode?: MasksViewMode; // 'masks' shows discrete colors, 'range' shows gradient
-  rangeOpacity?: number; // 0-1, only used in range mode
-}
-
-interface MaskOverlay {
-  id: string;
-  name: string;
-  color: string;
-  base64Data: string;
-  opacity: number;
-  visible: boolean;
-}
+// Initialize Leaflet icons on module load
+initializeLeafletIcons();
 
 // NDVI mask set (red -> yellow -> green)
 const createNdviMaskSet = (): MaskOverlay[] => [
