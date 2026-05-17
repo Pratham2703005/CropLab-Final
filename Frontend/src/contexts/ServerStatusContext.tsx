@@ -21,7 +21,6 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import { env } from '../config/env';
 import {
   ServerStatusContext,
   type ServerStatus,
@@ -91,7 +90,7 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const res = await fetch(`${env.API_BASE_URL}/health`, {
+      const res = await fetch(`${import.meta.env.API_BASE_URL}/health`, {
         signal: controller.signal,
         cache: 'no-store',
       });

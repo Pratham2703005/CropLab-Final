@@ -1,7 +1,12 @@
+import type { MAP_STYLES } from "@/constants/map";
+
+export type MapStyle = 
+  (typeof MAP_STYLES)[keyof typeof MAP_STYLES];
+
 export interface MapState {
   center: [number, number];
   zoom: number;
-  selectedLayer: 'satellite' | 'hybrid' | 'streets' | 'terrain';
+  selectedLayer: MapStyle;
   drawnShapes: GeoJSON.Feature[];
   overlays: HealthOverlay[];
   isDrawing: boolean;

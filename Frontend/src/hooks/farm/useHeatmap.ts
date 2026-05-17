@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { heatmapService } from '../../services/fileDatabase';
 import { getShowcaseHeatmap, isShowcaseFarmId } from '../../utils/showcaseFarms';
-import { env } from '../../config/env';
 import type { HeatmapData } from '../../types/farm';
 
 type LegacyHeatmapData = HeatmapData & {
@@ -137,7 +136,7 @@ export const useHeatmap = (farmId?: string): UseHeatmapReturn => {
       const requestHeatmap = async (
         payload: ReturnType<typeof buildPayload>
       ): Promise<Response> => {
-        return fetch(`${env.API_BASE_URL}/generate_heatmap_lite`, {
+        return fetch(`${import.meta.env.API_BASE_URL}/generate_heatmap_lite`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

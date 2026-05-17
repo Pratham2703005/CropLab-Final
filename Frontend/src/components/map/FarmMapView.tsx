@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
-import { MapContainer, TileLayer, Polygon, ScaleControl } from 'react-leaflet';
 import L from 'leaflet';
-import { Layers, ZoomIn, ZoomOut, RotateCcw, LocateFixed } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Polygon, ScaleControl } from 'react-leaflet';
+import { Layers, ZoomIn, ZoomOut, RotateCcw, LocateFixed } from 'lucide-react';
+import { useFarmMapView } from '@/hooks';
+import { MAP_STYLES, MAPS } from '@/constants/map';
 
 // Maximum allowed area in hectares (100 km² = 10,000 hectares)
 // Fix for default markers
@@ -26,102 +27,8 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
   height = '400px',
   className = ''
 }) => {
-  const [mapStyle, setMapStyle] = useState<'hybrid' | 'satellite' | 'streets'>('hybrid');
-  const [showStyleSelector, setShowStyleSelector] = useState(false);
-  const mapRef = useRef<L.Map | null>(null);
-  const MAP_API_KEY = import.meta.env.VITE_MAP_API_KEY;
-
-  // Convert coordinates to Leaflet format [lat, lng]
-  // coordinates: number[][] is expected as [lng, lat] pairs
-  const leafletCoords: [number, number][] = Array.isArray(coordinates)
-    ? coordinates
-        .filter((coord): coord is [number, number] => Array.isArray(coord) && coord.length >= 2 && typeof coord[0] === 'number' && typeof coord[1] === 'number')
-        .map((coord) => [coord[1], coord[0]])
-    : [];
-
-  // Calculate center of the polygon
-  const getPolygonCenter = (): [number, number] => {
-    if (leafletCoords.length === 0) {
-      return [28.6139, 77.2090]; // Default center
-    }
-
-    const latSum = leafletCoords.reduce((sum: number, coord: [number, number]) => sum + coord[0], 0);
-    const lngSum = leafletCoords.reduce((sum: number, coord: [number, number]) => sum + coord[1], 0);
-    return [latSum / leafletCoords.length, lngSum / leafletCoords.length];
-  };
-
-  // Calculate appropriate zoom level based on polygon bounds
-  const getZoomLevel = (): number => {
-    if (leafletCoords.length === 0) return 10;
-
-    const lats = leafletCoords.map((coord: [number, number]) => coord[0]);
-    const lngs = leafletCoords.map((coord: [number, number]) => coord[1]);
-    const latRange = Math.max(...lats) - Math.min(...lats);
-    const lngRange = Math.max(...lngs) - Math.min(...lngs);
-    const maxRange = Math.max(latRange, lngRange);
-
-    // Rough zoom calculation
-    if (maxRange > 1) return 8;
-    if (maxRange > 0.1) return 10;
-    if (maxRange > 0.01) return 12;
-    return 14;
-  };
-
-  const mapStyles = {
-    hybrid: `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAP_API_KEY}`,
-    satellite: `https://api.maptiler.com/maps/satellite/{z}/{x}/{y}.jpg?key=${MAP_API_KEY}`,
-    streets: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAP_API_KEY}`,
-  };
-
-  const handleZoomIn = () => {
-    if (mapRef.current) {
-      mapRef.current.zoomIn();
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (mapRef.current) {
-      mapRef.current.zoomOut();
-    }
-  };
-
-  const handleResetView = () => {
-    if (mapRef.current) {
-      const center = getPolygonCenter();
-      const zoom = getZoomLevel();
-      mapRef.current.setView(center, zoom);
-    }
-  };
-
-  const handleLocateMe = () => {
-  const map = mapRef.current;
-  if (!map) return;
-
-  if (!navigator.geolocation) return;
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude } = pos.coords;
-      map.flyTo([latitude, longitude], 16, {
-        animate: true,
-        duration: 2 // seconds
-      });
-    },
-    () => {
-      // Ignore errors silently
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-};
-
-
-  const handleStyleChange = (style: 'hybrid' | 'satellite' | 'streets') => {
-    setMapStyle(style);
-    setShowStyleSelector(false);
-  };
-
-  const center = getPolygonCenter();
-  const zoom = getZoomLevel();
+  const mapControls = useFarmMapView(coordinates);
+  const { mapRef, mapStyle, showStyleSelector, toggleStyleSelector, handlers, center, zoom } = mapControls;
 
   return (
     <div className={`relative ${className}`} style={{zIndex:1}}>
@@ -137,18 +44,17 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           {/* Base Layer - Dynamic based on selected style */}
           <TileLayer
             key={mapStyle}
-            url={mapStyles[mapStyle]}
+            url={MAPS[mapStyle]}
             attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           />
-
 
           {/* Scale Control */}
           <ScaleControl position="bottomleft" imperial={false} />
 
           {/* Farm Boundary Polygon */}
-          {leafletCoords.length > 2 && (
+          {mapControls.leafletCoords.length > 2 && (
             <Polygon
-              positions={leafletCoords}
+              positions={mapControls.leafletCoords}
               pathOptions={{
                 color: '#10b981',
                 weight: 3,
@@ -166,7 +72,7 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           {/* Navigation Tools */}
           <button
             type="button"
-            onClick={handleZoomIn}
+            onClick={handlers.handleZoomIn}
             className="w-8 h-8 bg-white text-black rounded-sm hover:bg-gray-100 flex items-center justify-center transition-all duration-200 group"
             title="Zoom In"
           >
@@ -174,7 +80,7 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           </button>
           <button
             type="button"
-            onClick={handleZoomOut}
+            onClick={handlers.handleZoomOut}
             className="w-8 h-8 bg-white text-black rounded-sm hover:bg-gray-100 flex items-center justify-center transition-all duration-200 group"
             title="Zoom Out"
           >
@@ -182,7 +88,7 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           </button>
           <button
             type="button"
-            onClick={handleResetView}
+            onClick={handlers.handleResetView}
             className="w-8 h-8 bg-white text-black rounded-sm hover:bg-gray-100 flex items-center justify-center transition-all duration-200 group"
             title="Reset View"
           >
@@ -190,7 +96,7 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           </button>
           <button
             type="button"
-            onClick={handleLocateMe}
+            onClick={handlers.handleLocateMe}
             className="w-8 h-8 bg-white text-black rounded-sm hover:bg-gray-100 flex items-center justify-center transition-all duration-200 group"
             title="My Location"
           >
@@ -203,7 +109,7 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           {/* Map Style Toggle */}
           <button
             type="button"
-            onClick={() => setShowStyleSelector(!showStyleSelector)}
+            onClick={toggleStyleSelector}
             className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all duration-200 group ${
               showStyleSelector 
                 ? 'bg-gray-100 text-black' 
@@ -220,9 +126,9 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
           <div className="absolute left-full top-0 ml-2 bg-white rounded-md shadow-lg border border-neutral-700 py-1 min-w-[100px]">
             <button
               type="button"
-              onClick={() => handleStyleChange('hybrid')}
+              onClick={() => handlers.handleStyleChange(MAP_STYLES.HYBRID)}
               className={`w-full px-3 py-1.5 text-xs text-left transition-colors ${
-                mapStyle === 'hybrid' 
+                mapStyle === MAP_STYLES.HYBRID 
                   ? 'bg-white text-black' 
                   : 'text-black hover:bg-gray-100'
               }`}
@@ -231,9 +137,9 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => handleStyleChange('satellite')}
+              onClick={() => handlers.handleStyleChange(MAP_STYLES.SATELLITE)}
               className={`w-full px-3 py-1.5 text-xs text-left transition-colors ${
-                mapStyle === 'satellite' 
+                mapStyle === MAP_STYLES.SATELLITE 
                   ? 'bg-white text-black' 
                   : 'text-black hover:bg-gray-100'
               }`}
@@ -242,9 +148,9 @@ export const FarmMapView: React.FC<FarmMapViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => handleStyleChange('streets')}
+              onClick={() => handlers.handleStyleChange(MAP_STYLES.STREETS)}
               className={`w-full px-3 py-1.5 text-xs text-left transition-colors ${
-                mapStyle === 'streets' 
+                mapStyle === MAP_STYLES.STREETS 
                   ? 'bg-white text-black' 
                   : 'text-black hover:bg-gray-100'
               }`}
