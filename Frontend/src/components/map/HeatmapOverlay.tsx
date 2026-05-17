@@ -17,104 +17,14 @@ import {
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import './HeatmapOverlay.css';
-import { initializeLeafletIcons } from '@/utils/map';
+import { initializeLeafletIcons, calculateBounds } from '@/utils/map';
+import { DEFAULT_MAP_CENTER, MAP_STYLES, MAPS, NDRE_MASK_SET, NDVI_MASK_SET, NDWI_MASK_SET } from '@/constants/map';
+import { MAP_MASK_MODES } from '@/constants/farm';
 import type { MapMaskMode } from '@/types/farm';
-import type { HeatmapOverlayProps, MaskOverlay } from '@/types';
+import type { HeatmapOverlayProps, MapStyle, MaskOverlay } from '@/types';
 
 // Initialize Leaflet icons on module load
 initializeLeafletIcons();
-
-// NDVI mask set (red -> yellow -> green)
-const createNdviMaskSet = (): MaskOverlay[] => [
-  {
-    id: 'red',
-    name: 'Stressed Areas',
-    color: '#ef4444',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'yellow',
-    name: 'Moderate Health',
-    color: '#eab308',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'green',
-    name: 'Healthy Areas',
-    color: '#22c55e',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-];
-
-// NDWI mask set (brown -> yellow -> light blue)
-const createNdwiMaskSet = (): MaskOverlay[] => [
-  {
-    id: 'brown',
-    name: 'Very Low Water',
-    color: '#8B4513',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'yellow',
-    name: 'Low Water',
-    color: '#eab308',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'light_blue',
-    name: 'Moderate Water',
-    color: '#87CEFA',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-];
-
-// NDRE mask set (purple -> pink -> light green -> dark green)
-const createNdreMaskSet = (): MaskOverlay[] => [
-  {
-    id: 'purple',
-    name: 'Stressed Vegetation',
-    color: '#800080',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'pink',
-    name: 'Moderate Stress',
-    color: '#FF69B4',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'light_green',
-    name: 'Healthy',
-    color: '#90EE90',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-  {
-    id: 'dark_green',
-    name: 'Very Healthy',
-    color: '#006400',
-    base64Data: '',
-    opacity: 0.7,
-    visible: true,
-  },
-];
 
 // Component to handle anomaly image overlay with bounds
 const AnomalyImageOverlay: React.FC<{
@@ -122,29 +32,7 @@ const AnomalyImageOverlay: React.FC<{
   anomalyTileUrl: string | undefined;
   opacity: number;
 }> = ({ coordinates, anomalyTileUrl, opacity }) => {
-  // Calculate bounds from coordinates
-  const getBounds = (): L.LatLngBounds | null => {
-    if (coordinates.length === 0) return null;
-
-    const leafletCoords: [number, number][] = coordinates
-      .filter(
-        (coord): coord is [number, number] =>
-          Array.isArray(coord) && coord.length >= 2
-      )
-      .map(coord => [coord[1], coord[0]]); // Convert [lng, lat] to [lat, lng]
-
-    if (leafletCoords.length === 0) return null;
-
-    const lats = leafletCoords.map(coord => coord[0]);
-    const lngs = leafletCoords.map(coord => coord[1]);
-
-    const southWest = L.latLng(Math.min(...lats), Math.min(...lngs));
-    const northEast = L.latLng(Math.max(...lats), Math.max(...lngs));
-
-    return L.latLngBounds(southWest, northEast);
-  };
-
-  const bounds = getBounds();
+  const bounds = calculateBounds(coordinates);
 
   if (!bounds || !anomalyTileUrl) return null;
 
@@ -166,27 +54,8 @@ const RangeImageOverlay: React.FC<{
   base64Data: string;
   opacity: number;
 }> = ({ coordinates, base64Data, opacity }) => {
-  const getBounds = (): L.LatLngBounds | null => {
-    if (coordinates.length === 0) return null;
+  const bounds = calculateBounds(coordinates);
 
-    const leafletCoords: [number, number][] = coordinates
-      .filter(
-        (coord): coord is [number, number] =>
-          Array.isArray(coord) && coord.length >= 2
-      )
-      .map(coord => [coord[1], coord[0]]);
-
-    if (leafletCoords.length === 0) return null;
-
-    const lats = leafletCoords.map(coord => coord[0]);
-    const lngs = leafletCoords.map(coord => coord[1]);
-
-    const southWest = L.latLng(Math.min(...lats), Math.min(...lngs));
-    const northEast = L.latLng(Math.max(...lats), Math.max(...lngs));
-    return L.latLngBounds(southWest, northEast);
-  };
-
-  const bounds = getBounds();
   if (!bounds || !base64Data) return null;
 
   return (
@@ -205,29 +74,7 @@ const HeatmapImageOverlays: React.FC<{
   maskOpacity?: Record<string, number>;
   maskVisibility?: Record<string, boolean>;
 }> = ({ coordinates, masks, maskOpacity = {}, maskVisibility = {} }) => {
-  // Calculate bounds from coordinates
-  const getBounds = (): L.LatLngBounds | null => {
-    if (coordinates.length === 0) return null;
-
-    const leafletCoords: [number, number][] = coordinates
-      .filter(
-        (coord): coord is [number, number] =>
-          Array.isArray(coord) && coord.length >= 2
-      )
-      .map(coord => [coord[1], coord[0]]); // Convert [lng, lat] to [lat, lng]
-
-    if (leafletCoords.length === 0) return null;
-
-    const lats = leafletCoords.map(coord => coord[0]);
-    const lngs = leafletCoords.map(coord => coord[1]);
-
-    const southWest = L.latLng(Math.min(...lats), Math.min(...lngs));
-    const northEast = L.latLng(Math.max(...lats), Math.max(...lngs));
-
-    return L.latLngBounds(southWest, northEast);
-  };
-
-  const bounds = getBounds();
+  const bounds = calculateBounds(coordinates);
 
   if (!bounds) return null;
 
@@ -265,21 +112,20 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
   viewMode = 'masks',
   rangeOpacity = 0.7,
 }) => {
-  const [mapStyle, setMapStyle] = useState<'hybrid' | 'satellite' | 'streets'>(
-    'hybrid'
+  const [mapStyle, setMapStyle] = useState<MapStyle>(
+    MAP_STYLES.HYBRID
   );
   const [showStyleSelector, setShowStyleSelector] = useState(false);
-  const activeLayer = activeLayerProp ?? 'ndvi';
+  const activeLayer = activeLayerProp ?? MAP_MASK_MODES.NDVI;
   const mapRef = useRef<L.Map | null>(null);
-  const MAP_API_KEY = import.meta.env.VITE_MAP_API_KEY;
 
   // Independent mask state for each layer
   const [ndviMasks, setNdviMasks] =
-    useState<MaskOverlay[]>(createNdviMaskSet());
+    useState<MaskOverlay[]>(NDVI_MASK_SET);
   const [ndwiMasks, setNdwiMasks] =
-    useState<MaskOverlay[]>(createNdwiMaskSet());
+    useState<MaskOverlay[]>(NDWI_MASK_SET);
   const [ndreMasks, setNdreMasks] =
-    useState<MaskOverlay[]>(createNdreMaskSet());
+    useState<MaskOverlay[]>(NDRE_MASK_SET);
 
   // Helpers to get the active layer's masks
   const masksMap: Partial<Record<MapMaskMode, MaskOverlay[]>> = {
@@ -300,11 +146,11 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
         prev.map(mask => ({
           ...mask,
           base64Data:
-            mask.id === 'red'
+            mask.id === NDVI_MASK_SET[0]!.id
               ? heatmapData.masks.red_mask_base64
-              : mask.id === 'yellow'
+              : mask.id === NDVI_MASK_SET[1]!.id
                 ? heatmapData.masks.yellow_mask_base64
-                : mask.id === 'green'
+                : mask.id === NDVI_MASK_SET[2]!.id
                   ? heatmapData.masks.green_mask_base64
                   : mask.base64Data,
         }))
@@ -318,11 +164,11 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
         prev.map(mask => ({
           ...mask,
           base64Data:
-            mask.id === 'brown'
+            mask.id === NDWI_MASK_SET[0]!.id
               ? (ndwiData.brown_mask_base64 ?? '')
-              : mask.id === 'yellow'
+              : mask.id === NDWI_MASK_SET[1]!.id
                 ? (ndwiData.yellow_mask_base64 ?? '')
-                : mask.id === 'light_blue'
+                : mask.id === NDWI_MASK_SET[2]!.id
                   ? (ndwiData.light_blue_mask_base64 ?? '')
                   : mask.base64Data,
         }))
@@ -336,13 +182,13 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
         prev.map(mask => ({
           ...mask,
           base64Data:
-            mask.id === 'purple'
+            mask.id === NDRE_MASK_SET[0]!.id
               ? (ndreData.purple_mask_base64 ?? '')
-              : mask.id === 'pink'
+              : mask.id === NDRE_MASK_SET[1]!.id
                 ? (ndreData.pink_mask_base64 ?? '')
-                : mask.id === 'light_green'
+                : mask.id === NDRE_MASK_SET[2]!.id
                   ? (ndreData.light_green_mask_base64 ?? '')
-                  : mask.id === 'dark_green'
+                  : mask.id === NDRE_MASK_SET[3]!.id
                     ? (ndreData.dark_green_mask_base64 ?? '')
                     : mask.base64Data,
         }))
@@ -366,7 +212,7 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
   // Calculate center of the polygon
   const getPolygonCenter = (): [number, number] => {
     if (leafletCoords.length === 0) {
-      return [28.6139, 77.209]; // Default center
+      return DEFAULT_MAP_CENTER; // Default center
     }
 
     const latSum = leafletCoords.reduce(
@@ -393,12 +239,6 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
     if (maxRange > 1) return 8;
     if (maxRange > 0.1) return 10;
     return 14;
-  };
-
-  const mapStyles = {
-    hybrid: `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAP_API_KEY}`,
-    satellite: `https://api.maptiler.com/maps/satellite/{z}/{x}/{y}.jpg?key=${MAP_API_KEY}`,
-    streets: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAP_API_KEY}`,
   };
 
   const handleZoomIn = () => {
@@ -466,7 +306,7 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
     );
   };
 
-  const handleStyleChange = (style: 'hybrid' | 'satellite' | 'streets') => {
+  const handleStyleChange = (style: MapStyle) => {
     setMapStyle(style);
     setShowStyleSelector(false);
   };
@@ -491,7 +331,7 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
           {/* Base Layer - Dynamic based on selected style */}
           <TileLayer
             key={mapStyle}
-            url={mapStyles[mapStyle]}
+            url={MAPS[mapStyle]}
             attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           />
 
@@ -656,8 +496,6 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
           </div>
         )}
       </div>
-
-      {/* Right Side Heatmap Controls Panel - REMOVED (moved to MapLayerSelector) */}
     </div>
   );
 };

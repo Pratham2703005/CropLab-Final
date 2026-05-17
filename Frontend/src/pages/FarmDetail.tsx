@@ -18,7 +18,8 @@ import {
   extractMapImagesFromHeatmapData,
 } from '../services/exportService';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
-import { DEFAULT_MASK_OPACITY, DEFAULT_MASK_VISIBILITY, DEFAULT_RANGE_OPACITY, MAP_MASK_MODES, MASKS_VIEW_MODES } from '@/constants/farm';
+import { DEFAULT_RANGE_OPACITY, MAP_MASK_MODES, MASKS_VIEW_MODES } from '@/constants/farm';
+import { DEFAULT_MASK_OPACITY, DEFAULT_MASK_VISIBILITY } from '@/constants/map';
 
 export default function FarmDetail() {
   const { id } = useParams<{ id: string }>();

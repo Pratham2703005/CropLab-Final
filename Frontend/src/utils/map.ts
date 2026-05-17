@@ -79,3 +79,42 @@ export const getZoomLevel = (coordinates: [number, number][]): number => {
   if (maxRange > 0.01) return 12;
   return 14;
 };
+
+/**
+ * Calculates Leaflet LatLngBounds from coordinates.
+ * Converts raw [lng, lat] coordinates to Leaflet format and computes bounding box.
+ * 
+ * Pure function: no side effects, deterministic output
+ * 
+ * @param coordinates - Array of [lng, lat] coordinate pairs (untrusted input)
+ * @returns L.LatLngBounds if valid coordinates exist, null otherwise
+ */
+export const calculateBounds = (coordinates: number[][]): L.LatLngBounds | null => {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) {
+    return null;
+  }
+
+  // Convert [lng, lat] to [lat, lng] and filter invalid entries
+  const leafletCoords: [number, number][] = coordinates
+    .filter(
+      (coord): coord is [number, number] =>
+        Array.isArray(coord) &&
+        coord.length >= 2 &&
+        typeof coord[0] === 'number' &&
+        typeof coord[1] === 'number'
+    )
+    .map(coord => [coord[1], coord[0]]); // [lng, lat] -> [lat, lng]
+
+  if (leafletCoords.length === 0) {
+    return null;
+  }
+
+  // Calculate min/max for bounds
+  const lats = leafletCoords.map(coord => coord[0]);
+  const lngs = leafletCoords.map(coord => coord[1]);
+
+  const southWest = L.latLng(Math.min(...lats), Math.min(...lngs));
+  const northEast = L.latLng(Math.max(...lats), Math.max(...lngs));
+
+  return L.latLngBounds(southWest, northEast);
+};

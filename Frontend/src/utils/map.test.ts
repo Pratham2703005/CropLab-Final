@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getPolygonCenter, toLeafletCoords, getZoomLevel } from './map';
+import { getPolygonCenter, toLeafletCoords, getZoomLevel, calculateBounds } from './map';
+import L from 'leaflet';
 
 describe('getPolygonCenter', () => {
   it.each([
@@ -259,6 +260,121 @@ describe('getZoomLevel', () => {
     ];
     const copy = JSON.parse(JSON.stringify(coordinates));
     getZoomLevel(coordinates);
+    expect(coordinates).toEqual(copy);
+  });
+});
+
+describe('calculateBounds', () => {
+  it('should return null for empty coordinates array', () => {
+    const result = calculateBounds([]);
+    expect(result).toBeNull();
+  });
+
+  it('should return null for non-array input', () => {
+    const result = calculateBounds(null as any);
+    expect(result).toBeNull();
+  });
+
+  it('should return null for array with only invalid coordinates', () => {
+    const result = calculateBounds([
+      [1], // too short
+      ['a', 'b'], // non-numeric
+      [NaN, 10],
+    ] as any);
+    expect(result).toBeNull();
+  });
+
+  it('should calculate bounds for valid [lng, lat] coordinates', () => {
+    // Square: corners at (30°E, 20°N), (30°E, 10°N), (40°E, 10°N), (40°E, 20°N)
+    const coordinates = [
+      [30, 20],
+      [30, 10],
+      [40, 10],
+      [40, 20],
+    ];
+
+    const result = calculateBounds(coordinates);
+
+    expect(result).not.toBeNull();
+    expect(result?.getSouthWest().lat).toBe(10);
+    expect(result?.getSouthWest().lng).toBe(30);
+    expect(result?.getNorthEast().lat).toBe(20);
+    expect(result?.getNorthEast().lng).toBe(40);
+  });
+
+  it('should filter out invalid coordinates and process valid ones', () => {
+    const coordinates = [
+      [30, 20],
+      [NaN, 15], // invalid - skip
+      [35, 15],
+      ['invalid', 'coord'], // invalid - skip
+      [40, 20],
+    ] as any;
+
+    const result = calculateBounds(coordinates);
+
+    expect(result).not.toBeNull();
+    // Should use valid coordinates: [30,20], [35,15], [40,20]
+    expect(result?.getSouthWest().lat).toBe(15);
+    expect(result?.getSouthWest().lng).toBe(30);
+    expect(result?.getNorthEast().lat).toBe(20);
+    expect(result?.getNorthEast().lng).toBe(40);
+  });
+
+  it('should handle single valid coordinate', () => {
+    const coordinates = [[75.5, 30.2]];
+
+    const result = calculateBounds(coordinates);
+
+    expect(result).not.toBeNull();
+    // Single point: SW and NE should be the same
+    expect(result?.getSouthWest().lat).toBe(30.2);
+    expect(result?.getSouthWest().lng).toBe(75.5);
+    expect(result?.getNorthEast().lat).toBe(30.2);
+    expect(result?.getNorthEast().lng).toBe(75.5);
+  });
+
+  it('should handle negative coordinates', () => {
+    const coordinates = [
+      [-73, 40], // New York-ish
+      [-74, 40],
+      [-73, 41],
+      [-74, 41],
+    ];
+
+    const result = calculateBounds(coordinates);
+
+    expect(result).not.toBeNull();
+    expect(result?.getSouthWest().lat).toBe(40);
+    expect(result?.getSouthWest().lng).toBe(-74);
+    expect(result?.getNorthEast().lat).toBe(41);
+    expect(result?.getNorthEast().lng).toBe(-73);
+  });
+
+  it('should be deterministic for same input', () => {
+    const coordinates = [[77.5, 28.2], [77.6, 28.3], [77.7, 28.2]];
+
+    const result1 = calculateBounds(coordinates);
+    const result2 = calculateBounds(coordinates);
+
+    expect(result1?.getSouthWest()).toEqual(result2?.getSouthWest());
+    expect(result1?.getNorthEast()).toEqual(result2?.getNorthEast());
+  });
+
+  it('should return L.LatLngBounds instance', () => {
+    const coordinates = [[30, 20], [40, 10]];
+    const result = calculateBounds(coordinates);
+
+    expect(result).toBeInstanceOf(L.LatLngBounds);
+  });
+
+  it('should not mutate input array (pure function)', () => {
+    const coordinates: number[][] = [
+      [30, 20],
+      [40, 10],
+    ];
+    const copy = JSON.parse(JSON.stringify(coordinates));
+    calculateBounds(coordinates);
     expect(coordinates).toEqual(copy);
   });
 });
