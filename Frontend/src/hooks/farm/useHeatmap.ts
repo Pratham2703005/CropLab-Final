@@ -136,7 +136,7 @@ export const useHeatmap = (farmId?: string): UseHeatmapReturn => {
       const requestHeatmap = async (
         payload: ReturnType<typeof buildPayload>
       ): Promise<Response> => {
-        return fetch(`${import.meta.env.API_BASE_URL}/generate_heatmap_lite`, {
+        return fetch(`${import.meta.env.VITE_API_BASE_URL}/generate_heatmap_lite`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

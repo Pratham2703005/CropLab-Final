@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.git/
+.gitignore
+*.md
+coverage/
+node_modules/.vite/
+# .env is kept on purpose — Vite needs VITE_* vars at build time

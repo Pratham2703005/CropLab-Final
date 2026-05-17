@@ -1,0 +1,17 @@
+# Virtual envs / caches
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+cache/
+
+# Secrets — supplied at runtime via env_file, never baked into the image
+.env
+.env.example
+earth-engine-service-account.json
+
+# Misc
+.git/
+.gitignore
+*.md
