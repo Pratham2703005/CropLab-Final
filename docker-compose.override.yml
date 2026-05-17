@@ -1,0 +1,21 @@
+# Dev override — auto-merged with docker-compose.yml on `docker-compose up`.
+# Runs the frontend as a Vite dev server with hot-reload, so code changes
+# show up instantly with NO image rebuild.
+#
+# For a production-style run (static build via nginx) bypass this file:
+#   docker-compose -f docker-compose.yml up --build
+services:
+  frontend:
+    build:
+      target: dev
+    environment:
+      # Enables polling-based file watching for HMR across the bind mount.
+      - DOCKER_DEV=true
+    # Replace the prod port mapping (5173:80) instead of merging with it.
+    ports: !override
+      - "5173:5173"
+    volumes:
+      # Live source — edits are picked up by the dev server.
+      - ./Frontend:/app
+      # Keep the container's Linux node_modules (don't let the host's shadow it).
+      - /app/node_modules

@@ -30,6 +30,9 @@ export default defineConfig({
     port: 3000,
     host: true,
     open: false,
+    // Polling is required for HMR when the source is bind-mounted from a
+    // Windows host into a Linux container (WSL2 file events don't propagate).
+    watch: process.env.DOCKER_DEV ? { usePolling: true, interval: 300 } : undefined,
   },
   build: {
     target: 'es2020',

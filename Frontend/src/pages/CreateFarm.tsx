@@ -20,7 +20,7 @@ import cropData from '@/assets/p.json';
 import { toast } from 'robot-toast';
 
 export const CreateFarm: React.FC = () => {
-  const { navigateToCreateFarm, navigateToDashboard } = useCropLabNavigation();
+  const { navigateToDashboard } = useCropLabNavigation();
   const { addFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
@@ -130,7 +130,7 @@ export const CreateFarm: React.FC = () => {
         robotVariant: '/wheat-base.png',
         autoClose: 3000,
       });
-      setTimeout(() => navigateToCreateFarm(), 500);
+      setTimeout(() => navigateToDashboard(), 500);
     } catch (error) {
       console.error('Error creating farm:', error);
     }

@@ -7,6 +7,10 @@ services:
       - ./Backend/.env
     environment:
       - PYTHONUNBUFFERED=1
+    # Mount the GEE service account at runtime so it stays out of the image.
+    # The backend falls back to this file when GEE_* env vars are not set.
+    volumes:
+      - ./Backend/earth-engine-service-account.json:/app/earth-engine-service-account.json:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
