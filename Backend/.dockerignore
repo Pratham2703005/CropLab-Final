@@ -6,10 +6,12 @@ __pycache__/
 *.pyc
 cache/
 
-# Secrets — supplied at runtime via env_file, never baked into the image
-.env
 .env.example
-earth-engine-service-account.json
+
+# NOTE: .env and earth-engine-service-account.json ARE baked into the image
+# so the ECS task (which has no env_file / volume mount, unlike the Compose
+# path) can authenticate with Google Earth Engine and the NVIDIA / data.gov /
+# NewsAPI services. Acceptable for this local demo; do not push the image.
 
 # Misc
 .git/
