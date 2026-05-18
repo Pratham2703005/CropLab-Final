@@ -25,3 +25,16 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  # Local AWS emulator used for the ECS deployment exercise.
+  # It is in the "ecs" profile so a plain `docker-compose up` ignores it.
+  # Start only this service:  docker-compose --profile ecs up -d ministack
+  ministack:
+    image: ministackorg/ministack
+    profiles: ["ecs"]
+    ports:
+      - "4566:4566"
+    volumes:
+      # Gives MiniStack access to the host Docker daemon so ECS run-task
+      # can actually launch the croplab-backend / croplab-frontend containers.
+      - /var/run/docker.sock:/var/run/docker.sock

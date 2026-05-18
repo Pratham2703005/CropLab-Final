@@ -1,0 +1,17 @@
+{
+  "family": "croplab-backend",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "croplab-backend:latest",
+      "memory": 512,
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 8000, "hostPort": 8000 }
+      ],
+      "environment": [
+        { "name": "PYTHONUNBUFFERED", "value": "1" }
+      ]
+    }
+  ]
+}

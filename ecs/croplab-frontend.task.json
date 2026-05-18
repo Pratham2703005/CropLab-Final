@@ -1,0 +1,14 @@
+{
+  "family": "croplab-frontend",
+  "containerDefinitions": [
+    {
+      "name": "frontend",
+      "image": "croplab-frontend:latest",
+      "memory": 256,
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 80, "hostPort": 5173 }
+      ]
+    }
+  ]
+}
