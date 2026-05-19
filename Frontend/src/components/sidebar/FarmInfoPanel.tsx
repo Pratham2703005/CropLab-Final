@@ -23,7 +23,7 @@ import {
   bandsPlaceholder,
   formatAnalysisDate,
 } from '@/utils/sidebar';
-import { HEALTH_STYLES } from '@/constants/sidebar';
+import { HEALTH_STYLES, HEALTH_TRENDS } from '@/constants/sidebar';
 import { NDRE_MASK_SET, NDWI_MASK_SET, NDVI_MASK_SET } from '@/constants/map';
 import type { FarmOverviewPanelProps, BandShare } from '@/types';
 
@@ -132,11 +132,11 @@ export const FarmOverviewPanel: React.FC<FarmOverviewPanelProps> = ({
   const analysisDate = formatAnalysisDate(heatmapData?.date_used);
 
   const trendIcon =
-    healthTrend.direction === 'improving' ? (
+    healthTrend.direction === HEALTH_TRENDS.IMPROVING ? (
       <ArrowUpRight className='h-3.5 w-3.5 text-emerald-700' />
-    ) : healthTrend.direction === 'declining' ? (
+    ) : healthTrend.direction === HEALTH_TRENDS.DECLINING ? (
       <ArrowDownRight className='h-3.5 w-3.5 text-red-700' />
-    ) : healthTrend.direction === 'stable' ? (
+    ) : healthTrend.direction === HEALTH_TRENDS.STABLE ? (
       <Minus className='h-3.5 w-3.5 text-neutral-500' />
     ) : null;
 
