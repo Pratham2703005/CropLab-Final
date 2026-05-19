@@ -1,0 +1,2 @@
+# Generated ECS task definition — contains injected credentials. Never commit.
+ecs/*.generated.json

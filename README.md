@@ -98,8 +98,73 @@ docker compose logs -f backend    # compose service logs
 
 ---
 
-## Full reset
+## 5. Build & push images to Docker Hub
+
+The images carry **no secrets** — credentials are injected at runtime — so they
+are safe to push to a public registry.
+
 ```powershell
-docker-compose --profile ecs down          # stop everything from compose
-docker stop $(docker ps -q); docker rm $(docker ps -aq)   # nuke all containers
+docker login
+docker build -t <dockerhub-user>/croplab-backend:latest ./Backend
+docker build -t <dockerhub-user>/croplab-frontend:latest ./Frontend
+docker push <dockerhub-user>/croplab-backend:latest
+docker push <dockerhub-user>/croplab-frontend:latest
+```
+
+### Running the pulled backend image
+
+The backend reads every credential from environment variables. Pass them with
+`--env-file` (full list + template: `Backend/.env.example`):
+
+```powershell
+docker run -p 8000:8000 --env-file ./Backend/.env <dockerhub-user>/croplab-backend:latest
+```
+
+Required: `GEE_*` (Google Earth Engine), `NVIDIA_API_KEY`, `GOVDATA_API_KEY`,
+`NEWSAPI_KEY`. For GEE to work via `--env-file`, the `GEE_*` vars must be in the
+`.env` file — your `Backend/.env` currently has only the API keys, so copy the
+`GEE_*` block from `.env.example` and fill it from the service-account JSON.
+
+How each run mode gets credentials (none are in the image):
+
+| Run mode | Credential source |
+|---|---|
+| `docker-compose` | `env_file: Backend/.env` + the GEE JSON volume mount |
+| ECS / MiniStack | `deploy-ministack.ps1` injects them into the task definition |
+| `docker run` | `--env-file ./Backend/.env` |
+
+> The **frontend** image bakes the `VITE_*` map keys into its JavaScript at build
+> time — unavoidable for any browser app. Restrict those keys by domain in the
+> MapTiler / Mapbox dashboards.
+
+---
+
+## 6. Stop & clean up
+
+### Stop everything when you're done
+The app runs as ECS task containers (`ministack-ecs-*`) **plus** the MiniStack
+container. Stop the tasks first, then MiniStack — otherwise the task containers
+are orphaned and keep holding ports 8000 / 5173:
+```powershell
+docker ps -q --filter "name=ministack-ecs" | ForEach-Object { docker stop $_ }
+docker-compose --profile ecs down
+```
+Start again later: re-run `deploy-ministack.ps1`.
+
+### Remove leftovers
+```powershell
+docker container prune -f     # delete all stopped containers
+docker image prune -f         # delete dangling (untagged) images
+```
+
+### What you should NOT have running
+- Exactly **one** MiniStack container (`croplab-final-ministack-1`). A second,
+  stray `ministackorg/ministack` container (random name like `happy_mendele`)
+  is a leftover — remove it: `docker rm <name>`.
+- Old `ministack-ecs-*` containers from past deploys pile up — `docker container prune -f` clears them.
+
+### Full reset (nuclear — stops every container on your machine)
+```powershell
+docker stop $(docker ps -q)   # stop all running containers
+docker container prune -f     # remove all stopped containers
 ```

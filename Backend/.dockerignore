@@ -6,12 +6,14 @@ __pycache__/
 *.pyc
 cache/
 
+# Secrets — NEVER baked into the image, so it is safe to push to Docker Hub.
+# Supplied at runtime instead:
+#   - docker-compose : env_file + the JSON volume mount
+#   - ECS            : the deploy script injects them as task env vars
+#   - docker run     : --env-file ./Backend/.env
+.env
 .env.example
-
-# NOTE: .env and earth-engine-service-account.json ARE baked into the image
-# so the ECS task (which has no env_file / volume mount, unlike the Compose
-# path) can authenticate with Google Earth Engine and the NVIDIA / data.gov /
-# NewsAPI services. Acceptable for this local demo; do not push the image.
+earth-engine-service-account.json
 
 # Misc
 .git/

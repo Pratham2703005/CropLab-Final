@@ -1,8 +1,8 @@
 # Deploys CropLab to MiniStack as ECS tasks (backend + frontend).
 # Prereqs:
+#   - Docker Desktop running
 #   - AWS CLI installed and configured (any fake creds; region us-east-1)
-#   - MiniStack running:  docker-compose --profile ecs up -d ministack
-# Run from the project root:  ./deploy-ministack.ps1
+# The script starts MiniStack itself. Run from the project root.
 
 $ErrorActionPreference = "Stop"
 $endpoint = "http://localhost:4566"
@@ -51,9 +51,45 @@ Invoke-Step "Create ECS cluster" {
     aws --endpoint-url=$endpoint ecs create-cluster --cluster-name croplab
 }
 
+# --- Generate the backend task definition with credentials injected ---
+# The backend image is secret-free (safe to push to Docker Hub). Credentials
+# are read here from Backend/.env + the GEE service-account JSON and passed to
+# ECS as task environment variables. The generated file is git-ignored.
+Write-Host "`n=== Generate backend task definition (inject credentials) ===" -ForegroundColor Cyan
+
+$envVars = @()
+if (Test-Path ./Backend/.env) {
+    foreach ($line in Get-Content ./Backend/.env) {
+        $t = $line.Trim()
+        if (-not $t -or $t.StartsWith("#") -or ($t -notmatch "=")) { continue }
+        $name, $value = $t -split "=", 2
+        $envVars += @{ name = $name.Trim(); value = $value.Trim().Trim('"').Trim("'") }
+    }
+}
+if (Test-Path ./Backend/earth-engine-service-account.json) {
+    $gee = Get-Content ./Backend/earth-engine-service-account.json -Raw | ConvertFrom-Json
+    $envVars += @{ name = "GEE_SERVICE_ACCOUNT_EMAIL"; value = "$($gee.client_email)" }
+    $envVars += @{ name = "GEE_PROJECT_ID";            value = "$($gee.project_id)" }
+    $envVars += @{ name = "GEE_PRIVATE_KEY_ID";        value = "$($gee.private_key_id)" }
+    $envVars += @{ name = "GEE_CLIENT_ID";             value = "$($gee.client_id)" }
+    $envVars += @{ name = "GEE_CLIENT_CERT_URL";       value = "$($gee.client_x509_cert_url)" }
+    # Code expects literal \n in the env var; convert real newlines to \n.
+    $envVars += @{ name = "GEE_PRIVATE_KEY";           value = ($gee.private_key -replace "`r?`n", "\n") }
+} else {
+    Write-Host "  WARNING: Backend/earth-engine-service-account.json not found - GEE disabled." -ForegroundColor Yellow
+}
+$envVars += @{ name = "PYTHONUNBUFFERED"; value = "1" }
+
+$taskDef = Get-Content ./ecs/croplab-backend.task.json -Raw | ConvertFrom-Json
+$taskDef.containerDefinitions[0].environment = $envVars
+[System.IO.File]::WriteAllText(
+    (Join-Path $PSScriptRoot "ecs\croplab-backend.task.generated.json"),
+    ($taskDef | ConvertTo-Json -Depth 12))
+Write-Host "  wrote ecs/croplab-backend.task.generated.json ($($envVars.Count) env vars injected)"
+
 Invoke-Step "Register backend task definition" {
     aws --endpoint-url=$endpoint ecs register-task-definition `
-        --cli-input-json file://ecs/croplab-backend.task.json
+        --cli-input-json file://ecs/croplab-backend.task.generated.json
 }
 
 Invoke-Step "Register frontend task definition" {
