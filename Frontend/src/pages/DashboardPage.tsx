@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { AddFarmCard, Card } from '@/components/card';
 import { formatHectares } from '@/utils';
-import { calculateTotalArea, getActiveCropsCount } from '@/utils/farmCalculations';
+import { calculateTotalArea, getActiveCropsCount } from '@/utils/farm';
 import { heatmapService } from '@/services/fileDatabase';
 import { useServerStatus } from '@/contexts/serverStatus';
 import { ServerStatusBanner } from '@/components/ServerStatusBanner';
