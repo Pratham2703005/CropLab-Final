@@ -8,12 +8,13 @@ import { LeafletMap } from '../components/map/LeafletMap';
 import { ArrowLeft, Sprout, MapPin, Calendar, Save, X } from 'lucide-react';
 import { formatHectares, formatDateForDisplay } from '@/utils';
 import { toast } from 'robot-toast';
+import { DEFAULT_FARM_DETAIL_KEYS } from '@/constants/farm';
 import { heatmapService } from '../services/fileDatabase';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 
 export default function EditFarm() {
   const { id } = useParams<{ id: string }>();
-  const { navigateToFarmDetails} = useCropLabNavigation();
+  const { navigateToFarmDetails } = useCropLabNavigation();
   const { getFarmById, updateFarm, loading, error } = useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
@@ -37,17 +38,17 @@ export default function EditFarm() {
     setValue,
   } = useForm<FarmFormData>();
 
-  const plantingDate = watch('plantingDate');
-  const harvestDate = watch('harvestDate');
-  const selectedCrop = watch('crop');
+  const plantingDate = watch(DEFAULT_FARM_DETAIL_KEYS.PLANTING_DATE);
+  const harvestDate = watch(DEFAULT_FARM_DETAIL_KEYS.HARVEST_DATE);
+  const selectedCrop = watch(DEFAULT_FARM_DETAIL_KEYS.SELECTED_CROP);
 
   useEffect(() => {
     if (farm) {
       // Populate form with existing farm data
-      setValue('name', farm.name);
-      setValue('crop', farm.crop);
-      setValue('plantingDate', farm.plantingDate || '');
-      setValue('harvestDate', farm.harvestDate || '');
+      setValue(DEFAULT_FARM_DETAIL_KEYS.FARM_NAME, farm.name);
+      setValue(DEFAULT_FARM_DETAIL_KEYS.SELECTED_CROP, farm.crop);
+      setValue(DEFAULT_FARM_DETAIL_KEYS.PLANTING_DATE, farm.plantingDate || '');
+      setValue(DEFAULT_FARM_DETAIL_KEYS.HARVEST_DATE, farm.harvestDate || '');
 
       // Set display dates
       setDisplayPlantingDate(formatDateForDisplay(farm.plantingDate));
@@ -63,9 +64,16 @@ export default function EditFarm() {
   useEffect(() => {
     if (selectedCrop && farm && selectedCrop !== farm.crop) {
       // Only auto-fill if crop changed manually, not on initial load
-      const { plantingDate: autoPlantingDate, harvestDate: autoHarvestDate } = calculateCropDates(selectedCrop);
-      setValue('plantingDate' as keyof FarmFormData, autoPlantingDate);
-      setValue('harvestDate' as keyof FarmFormData, autoHarvestDate);
+      const { plantingDate: autoPlantingDate, harvestDate: autoHarvestDate } =
+        calculateCropDates(selectedCrop);
+      setValue(
+        DEFAULT_FARM_DETAIL_KEYS.PLANTING_DATE,
+        autoPlantingDate
+      );
+      setValue(
+        DEFAULT_FARM_DETAIL_KEYS.HARVEST_DATE,
+        autoHarvestDate
+      );
       setDisplayPlantingDate(formatDateForDisplay(autoPlantingDate));
       setDisplayHarvestDate(formatDateForDisplay(autoHarvestDate));
     }
@@ -339,9 +347,11 @@ export default function EditFarm() {
                     <input
                       type='date'
                       value={plantingDate}
-                      onChange={(e) => {
+                      onChange={e => {
                         setValue('plantingDate', e.target.value);
-                        setDisplayPlantingDate(formatDateForDisplay(e.target.value));
+                        setDisplayPlantingDate(
+                          formatDateForDisplay(e.target.value)
+                        );
                       }}
                       className='input'
                     />
@@ -362,9 +372,11 @@ export default function EditFarm() {
                     <input
                       type='date'
                       value={harvestDate}
-                      onChange={(e) => {
+                      onChange={e => {
                         setValue('harvestDate', e.target.value);
-                        setDisplayHarvestDate(formatDateForDisplay(e.target.value));
+                        setDisplayHarvestDate(
+                          formatDateForDisplay(e.target.value)
+                        );
                       }}
                       min={plantingDate}
                       className='input'
@@ -375,11 +387,13 @@ export default function EditFarm() {
                       </p>
                     )}
                   </div>
-                  {harvestDate && plantingDate && harvestDate <= plantingDate && (
-                    <p className='text-red-500 text-sm mt-1'>
-                      Harvest date must be after planting date
-                    </p>
-                  )}
+                  {harvestDate &&
+                    plantingDate &&
+                    harvestDate <= plantingDate && (
+                      <p className='text-red-500 text-sm mt-1'>
+                        Harvest date must be after planting date
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
@@ -421,7 +435,9 @@ export default function EditFarm() {
                   onPolygonComplete={handlePolygonComplete}
                   height='500px'
                   className='border rounded-lg'
-                  {...(coordinates.length > 0 && { initialPolygon: coordinates })}
+                  {...(coordinates.length > 0 && {
+                    initialPolygon: coordinates,
+                  })}
                 />
 
                 {coordinates.length > 0 && (

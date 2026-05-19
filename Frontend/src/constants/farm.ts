@@ -1,3 +1,5 @@
+import type { FarmFormData } from "@/types/farm";
+
 export const MASKS_VIEW_MODES = {
   RANGE: 'range',
   MASKS: 'masks',
@@ -11,3 +13,10 @@ export const MAP_MASK_MODES = {
     NDRE: 'ndre',
     ANOMALY: 'anomaly'
 } as const;
+
+export const DEFAULT_FARM_DETAIL_KEYS = {
+  PLANTING_DATE: 'plantingDate',
+  HARVEST_DATE: 'harvestDate',
+  SELECTED_CROP: 'crop',
+  FARM_NAME: 'name'
+} as const satisfies Record<string, keyof FarmFormData>;
