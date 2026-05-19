@@ -3,8 +3,8 @@
  * calendar maths. Kept side-effect free so they're trivial to unit test
  * (see farm.test.ts) and reusable from any hook or component.
  */
-import { CROP_CALENDAR } from '@/constants/farm';
-import type { Farm } from '@/types/farm';
+import { CROP_CALENDAR, CROP_STAGE } from '@/constants/farm';
+import type { CropStage, Farm } from '@/types/farm';
 
 /**
  * Validate a farm's planting/harvest date pair.
@@ -126,4 +126,63 @@ export function calculateTotalArea(farms: Farm[]): number {
  */
 export function getActiveCropsCount(farms: Farm[]): number {
   return new Set(farms.map((farm: Farm) => farm.crop)).size;
+}
+
+/**
+ * Calculate field timeline metrics from planting/harvest dates
+ * Consolidates all timeline math into a single pure function
+ *
+ * @param plantingDate - ISO date string (YYYY-MM-DD) or Date object
+ * @param harvestDate - ISO date string (YYYY-MM-DD) or Date object
+ * @param referenceDate - Optional reference date for "now" (defaults to current date)
+ * @returns Object containing timeline metrics: totalCycleDays, daysSincePlanting, daysRemaining,
+ *          cycleProgress (0-100), cropStage, and isCycleCompleted flag
+ */
+export function calculateFieldTimeline(
+  plantingDate: string | Date,
+  harvestDate: string | Date,
+  referenceDate: Date = new Date()
+): import('@/types/farm').FieldTimeline {
+  const plantDate = plantingDate instanceof Date ? plantingDate : new Date(plantingDate);
+  const harvestDateObj = harvestDate instanceof Date ? harvestDate : new Date(harvestDate);
+
+  const totalCycleDays = Math.max(
+    1,
+    Math.ceil(
+      (harvestDateObj.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24)
+    )
+  );
+
+  const daysSincePlanting = Math.max(
+    0,
+    Math.ceil((referenceDate.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((harvestDateObj.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  const cycleProgress = Math.max(
+    0,
+    Math.min(100, (daysSincePlanting / totalCycleDays) * 100)
+  );
+
+  let cropStage: CropStage = CROP_STAGE.PLANNED;
+  if (referenceDate > harvestDateObj) {
+    cropStage = 'Completed';
+  } else if (referenceDate >= plantDate) {
+    cropStage = cycleProgress >= 90 ? CROP_STAGE.HARVEST_WINDOW : CROP_STAGE.GROWING;
+  }
+
+  const isCycleCompleted = cropStage === CROP_STAGE.COMPLETED || daysRemaining === 0;
+
+  return {
+    totalCycleDays,
+    daysSincePlanting,
+    daysRemaining,
+    cycleProgress,
+    cropStage,
+    isCycleCompleted,
+  };
 }

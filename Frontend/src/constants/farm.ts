@@ -108,3 +108,10 @@ export const CROP_CALENDAR: Record<typeof CROP_OPTIONS[number], { cultivation: s
     harvest: ['Mar', 'Apr'],
   },
 };
+
+export const CROP_STAGE = {
+  PLANNED: 'Planned',
+  GROWING: 'Growing',
+  HARVEST_WINDOW: 'Harvest Window',
+  COMPLETED: 'Completed'
+} as const;

@@ -6,6 +6,7 @@ import {
   monthNameToNumber,
   validateFarmDates,
   validateFarmForm,
+  calculateFieldTimeline,
 } from './farm';
 import type { Farm } from '@/types';
 
@@ -269,6 +270,137 @@ describe('farm', () => {
       },
     ])('should return $expected for $name', ({ farms, expected }) => {
       expect(getActiveCropsCount(farms)).toBe(expected);
+    });
+  });
+
+  describe('calculateFieldTimeline', () => {
+    const refDate = new Date(2025, 4, 15); // 15 May 2025
+
+    it('calculates planned stage (before planting)', () => {
+      const result = calculateFieldTimeline(
+        '2025-06-01',
+        '2025-09-01',
+        refDate
+      );
+      expect(result.cropStage).toBe('Planned');
+      expect(result.daysSincePlanting).toBe(0);
+      expect(result.isCycleCompleted).toBe(false);
+    });
+
+    it('calculates growing stage (after planting, before 90%)', () => {
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-09-01',
+        refDate
+      );
+      expect(result.cropStage).toBe('Growing');
+      expect(result.daysSincePlanting).toBeGreaterThan(0);
+      expect(result.cycleProgress).toBeLessThan(90);
+      expect(result.isCycleCompleted).toBe(false);
+    });
+
+    it('calculates harvest window stage (at 90%+ progress)', () => {
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-05-25',
+        refDate
+      );
+      expect(result.cropStage).toBe('Harvest Window');
+      expect(result.cycleProgress).toBeGreaterThanOrEqual(90);
+      expect(result.isCycleCompleted).toBe(false);
+    });
+
+    it('calculates completed stage (after harvest)', () => {
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-05-01',
+        refDate
+      );
+      expect(result.cropStage).toBe('Completed');
+      expect(result.daysRemaining).toBe(0);
+      expect(result.isCycleCompleted).toBe(true);
+    });
+
+    it('calculates correct progress percentage', () => {
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-12-31',
+        refDate
+      );
+      // 135 days elapsed / 364 days total ≈ 37%
+      expect(result.cycleProgress).toBeGreaterThan(35);
+      expect(result.cycleProgress).toBeLessThan(40);
+    });
+
+    it('accepts Date objects as inputs', () => {
+      const plantDate = new Date(2025, 0, 1); // 1 Jan 2025
+      const harvestDate = new Date(2025, 8, 1); // 1 Sep 2025
+      const result = calculateFieldTimeline(plantDate, harvestDate, refDate);
+      expect(result.totalCycleDays).toBeGreaterThan(0);
+      expect(result.cropStage).toBe('Growing');
+    });
+
+    it('accepts ISO date strings as inputs', () => {
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-09-01',
+        refDate
+      );
+      expect(result.totalCycleDays).toBeGreaterThan(0);
+      expect(result.cropStage).toBe('Growing');
+    });
+
+    it('defaults to current date when referenceDate not provided', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 180); // 6 months in future
+      const result = calculateFieldTimeline(
+        futureDate.toISOString().split('T')[0]!,
+        new Date(futureDate.getTime() + 365 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0]!
+      );
+      expect(result.cropStage).toBe('Planned');
+    });
+
+    it('handles zero-day cycles (same planting/harvest + 1ms)', () => {
+      const result = calculateFieldTimeline(
+        '2025-05-15',
+        '2025-05-16',
+        refDate
+      );
+      expect(result.totalCycleDays).toBeGreaterThanOrEqual(1);
+      expect(result.isCycleCompleted).toBe(false);
+    });
+
+    it('clamps cycleProgress between 0 and 100', () => {
+      // Before planting
+      const beforeResult = calculateFieldTimeline(
+        '2025-12-01',
+        '2025-12-02',
+        refDate
+      );
+      expect(beforeResult.cycleProgress).toBeGreaterThanOrEqual(0);
+
+      // After harvest
+      const afterResult = calculateFieldTimeline(
+        '2024-01-01',
+        '2024-02-01',
+        refDate
+      );
+      expect(afterResult.cycleProgress).toBeLessThanOrEqual(100);
+    });
+
+    it('calculates accurate daysRemaining at milestone dates', () => {
+      // On Aug 2, 2025 with harvest on Sep 1, 2025 = 30 days (or 31 with ceiling)
+      const testDate = new Date(2025, 7, 2); // 2 Aug 2025
+      const result = calculateFieldTimeline(
+        '2025-01-01',
+        '2025-09-01',
+        testDate
+      );
+      // With ceiling, the actual difference can be 30 or 31 depending on timing
+      expect(result.daysRemaining).toBeGreaterThanOrEqual(29);
+      expect(result.daysRemaining).toBeLessThanOrEqual(31);
     });
   })
 });

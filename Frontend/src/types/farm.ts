@@ -1,4 +1,4 @@
-import { type CROP_OPTIONS, type MAP_MASK_MODES, type MASKS_VIEW_MODES } from "@/constants/farm";
+import { CROP_STAGE, type CROP_OPTIONS, type MAP_MASK_MODES, type MASKS_VIEW_MODES } from "@/constants/farm";
 
 export interface Farm {
   id: string;
@@ -185,3 +185,14 @@ export interface WeatherData {
 }
 
 export type CropType = (typeof CROP_OPTIONS)[number];
+
+export type CropStage = typeof CROP_STAGE[keyof typeof CROP_STAGE];
+
+export interface FieldTimeline {
+  totalCycleDays: number;
+  daysSincePlanting: number;
+  daysRemaining: number;
+  cycleProgress: number; // 0-100 percentage
+  cropStage: CropStage;
+  isCycleCompleted: boolean;
+}

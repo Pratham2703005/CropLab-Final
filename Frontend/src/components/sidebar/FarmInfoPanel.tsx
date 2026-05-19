@@ -13,114 +13,19 @@ import {
   Minus,
   Layers,
 } from 'lucide-react';
-import type { Farm, HeatmapData } from '@/types/farm';
 import { formatArea, formatDate } from '@/utils';
-
-interface FarmOverviewPanelProps {
-  farm: Farm;
-  heatmapData?: HeatmapData | null;
-  canEdit: boolean;
-  onDelete: () => void;
-  onOpenTrends: () => void;
-  onViewOnMap: () => void;
-}
-
-const HEALTH_STYLES: Record<string, string> = {
-  Excellent: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  Good: 'bg-lime-100 text-lime-800 border-lime-200',
-  Moderate: 'bg-amber-100 text-amber-800 border-amber-200',
-  Poor: 'bg-orange-100 text-orange-800 border-orange-200',
-  Critical: 'bg-red-100 text-red-800 border-red-200',
-};
-
-type HealthLabel = 'Excellent' | 'Good' | 'Moderate' | 'Poor' | 'Critical';
-
-const deriveOverallHealth = (riskScore: number): HealthLabel => {
-  if (riskScore >= 60) return 'Critical';
-  if (riskScore >= 40) return 'Poor';
-  if (riskScore >= 25) return 'Moderate';
-  if (riskScore >= 10) return 'Good';
-  return 'Excellent';
-};
-
-type HealthTrend = 'improving' | 'stable' | 'declining' | null;
-
-interface HealthTrendInfo {
-  direction: HealthTrend;
-  deltaPct: number;
-  priorYearsCount: number;
-}
-
-const computeHealthTrend = (
-  ndviTrend: { date: string; mean_ndvi: number }[] | undefined
-): HealthTrendInfo => {
-  if (!ndviTrend || ndviTrend.length < 2) {
-    return { direction: null, deltaPct: 0, priorYearsCount: 0 };
-  }
-  const sorted = ndviTrend
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const latest = sorted[sorted.length - 1]!.mean_ndvi;
-  const priorPoints = sorted.slice(0, -1);
-  const priorAvg =
-    priorPoints.reduce((sum, p) => sum + p.mean_ndvi, 0) / priorPoints.length;
-  if (!Number.isFinite(latest) || !Number.isFinite(priorAvg) || priorAvg <= 0) {
-    return { direction: null, deltaPct: 0, priorYearsCount: 0 };
-  }
-  const deltaPct = ((latest - priorAvg) / Math.abs(priorAvg)) * 100;
-  const priorYearsCount = priorPoints.length;
-  if (Math.abs(deltaPct) < 3) {
-    return { direction: 'stable', deltaPct, priorYearsCount };
-  }
-  return {
-    direction: deltaPct > 0 ? 'improving' : 'declining',
-    deltaPct,
-    priorYearsCount,
-  };
-};
-
-// Each band gets a fixed color, label, and the key it reads from the
-// pixel-counts dictionary the backend returns. Centralising these lets the
-// Maps Overview render every band's percentage chip with the same code path.
-type BandSpec = { key: string; color: string; label: string };
-
-const NDVI_BANDS: BandSpec[] = [
-  { key: 'green', color: '#22c55e', label: 'Healthy' },
-  { key: 'yellow', color: '#eab308', label: 'Moderate' },
-  { key: 'red', color: '#ef4444', label: 'Stressed' },
-];
-const NDWI_BANDS: BandSpec[] = [
-  { key: 'light_blue', color: '#87CEFA', label: 'Moderate water' },
-  { key: 'yellow', color: '#eab308', label: 'Low water' },
-  { key: 'brown', color: '#8B4513', label: 'Very low water' },
-];
-const NDRE_BANDS: BandSpec[] = [
-  { key: 'dark_green', color: '#006400', label: 'High chlorophyll' },
-  { key: 'light_green', color: '#90EE90', label: 'Healthy' },
-  { key: 'pink', color: '#FF69B4', label: 'Mild deficiency' },
-  { key: 'purple', color: '#800080', label: 'Stressed' },
-];
-
-interface BandShare {
-  spec: BandSpec;
-  pct: number;
-}
-
-const computeBandShares = (
-  counts: Record<string, number | undefined> | undefined,
-  bands: BandSpec[]
-): BandShare[] | null => {
-  if (!counts) return null;
-  const total = bands.reduce(
-    (sum, b) => sum + Math.max(0, Number(counts[b.key] ?? 0)),
-    0
-  );
-  if (total <= 0) return null;
-  return bands.map(b => ({
-    spec: b,
-    pct: (Math.max(0, Number(counts[b.key] ?? 0)) / total) * 100,
-  }));
-};
+import { calculateFieldTimeline } from '@/utils/farm';
+import {
+  deriveOverallHealth,
+  computeRiskScore,
+  computeHealthTrend,
+  computeBandShares,
+  bandsPlaceholder,
+  formatAnalysisDate,
+} from '@/utils/sidebar';
+import { HEALTH_STYLES } from '@/constants/sidebar';
+import { NDRE_MASK_SET, NDWI_MASK_SET, NDVI_MASK_SET } from '@/constants/map';
+import type { FarmOverviewPanelProps, BandShare } from '@/types';
 
 const IndexRow: React.FC<{
   label: string;
@@ -141,7 +46,7 @@ const IndexRow: React.FC<{
           <div className='flex h-full w-full'>
             {shares.map(s => (
               <div
-                key={s.spec.key}
+                key={s.spec.id}
                 style={{ width: `${s.pct}%`, backgroundColor: s.spec.color }}
               />
             ))}
@@ -151,7 +56,7 @@ const IndexRow: React.FC<{
       <div className='flex flex-wrap gap-1.5'>
         {(shares ?? bandsPlaceholder(label)).map((s, i) => (
           <span
-            key={`${s.spec.key}-${i}`}
+            key={`${s.spec.id}-${i}`}
             className={`inline-flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-[11px] ${
               hasData
                 ? 'text-neutral-800 bg-white'
@@ -162,7 +67,7 @@ const IndexRow: React.FC<{
               className='inline-block h-2 w-2 rounded-full'
               style={{ backgroundColor: s.spec.color }}
             />
-            <span className='font-medium'>{s.spec.label}</span>
+            <span className='font-medium'>{s.spec.name}</span>
             <span className='tabular-nums font-semibold'>
               {hasData ? `${s.pct.toFixed(0)}%` : '—'}
             </span>
@@ -171,29 +76,6 @@ const IndexRow: React.FC<{
       </div>
     </div>
   );
-};
-
-// Used when an index has no data yet - we still render the chips (greyed
-// out) so the row's height stays the same as a populated one. Picks the
-// right spec list based on the row label.
-const bandsPlaceholder = (label: string): BandShare[] => {
-  const specs = label.includes('NDVI')
-    ? NDVI_BANDS
-    : label.includes('NDWI')
-      ? NDWI_BANDS
-      : NDRE_BANDS;
-  return specs.map(spec => ({ spec, pct: 0 }));
-};
-
-const formatAnalysisDate = (raw?: string): string | null => {
-  if (!raw) return null;
-  const parsed = new Date(`${raw}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 };
 
 export const FarmOverviewPanel: React.FC<FarmOverviewPanelProps> = ({
@@ -210,19 +92,7 @@ export const FarmOverviewPanel: React.FC<FarmOverviewPanelProps> = ({
   const location = heatmapData?.location;
   const pixelCounts = heatmapData?.pixel_counts;
 
-  const totalPixels =
-    (pixelCounts?.valid && pixelCounts.valid > 0
-      ? pixelCounts.valid
-      : (pixelCounts?.red ?? 0) +
-        (pixelCounts?.yellow ?? 0) +
-        (pixelCounts?.green ?? 0)) || 0;
-
-  const yellowPct =
-    totalPixels > 0 ? ((pixelCounts?.yellow ?? 0) / totalPixels) * 100 : 0;
-  const redPct =
-    totalPixels > 0 ? ((pixelCounts?.red ?? 0) / totalPixels) * 100 : 0;
-
-  const riskScore = Math.max(0, Math.min(100, redPct * 0.7 + yellowPct * 0.3));
+  const riskScore = computeRiskScore(pixelCounts);
   const overallHealth = deriveOverallHealth(riskScore);
   const healthTrend = computeHealthTrend(heatmapData?.anomaly?.ndvi_trend);
 
@@ -233,49 +103,30 @@ export const FarmOverviewPanel: React.FC<FarmOverviewPanelProps> = ({
     : '';
 
   // --- Field timeline math ---
-  const plantingDate = new Date(farm.plantingDate);
-  const harvestDate = new Date(farm.harvestDate);
-  const now = new Date();
-  const totalCycleDays = Math.max(
-    1,
-    Math.ceil(
-      (harvestDate.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24)
-    )
-  );
-  const daysSincePlanting = Math.max(
-    0,
-    Math.ceil((now.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24))
-  );
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil((harvestDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  );
-  const cycleProgress = Math.max(
-    0,
-    Math.min(100, (daysSincePlanting / totalCycleDays) * 100)
-  );
-
-  let cropStage = 'Planned';
-  if (now > harvestDate) cropStage = 'Completed';
-  else if (now >= plantingDate) {
-    cropStage = cycleProgress >= 90 ? 'Harvest Window' : 'Growing';
-  }
-  const isCycleCompleted = cropStage === 'Completed' || daysRemaining === 0;
+  const timeline = calculateFieldTimeline(farm.plantingDate, farm.harvestDate);
+  const {
+    totalCycleDays,
+    daysSincePlanting,
+    daysRemaining,
+    cycleProgress,
+    cropStage,
+    isCycleCompleted,
+  } = timeline;
 
   const boundaryPoints =
     farm.coordinates?.filter(point => point.length >= 2).length ?? 0;
 
   const ndviShares = computeBandShares(
     pixelCounts as Record<string, number> | undefined,
-    NDVI_BANDS
+    NDVI_MASK_SET
   );
   const ndwiShares = computeBandShares(
     heatmapData?.ndwi_pixel_counts as Record<string, number> | undefined,
-    NDWI_BANDS
+    NDWI_MASK_SET
   );
   const ndreShares = computeBandShares(
     heatmapData?.ndre_pixel_counts as Record<string, number> | undefined,
-    NDRE_BANDS
+    NDRE_MASK_SET
   );
 
   const analysisDate = formatAnalysisDate(heatmapData?.date_used);
