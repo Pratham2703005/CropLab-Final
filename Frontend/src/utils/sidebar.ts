@@ -11,10 +11,10 @@ import type { HeatmapData } from '@/types/farm';
  */
 export const deriveOverallHealth = (riskScore: number): HealthLabel => {
   if (riskScore >= 60) return 'Critical';
-  if (riskScore >= 40) return 'Poor';
-  if (riskScore >= 25) return 'Moderate';
-  if (riskScore >= 10) return 'Good';
-  return 'Excellent';
+  else if (riskScore >= 40) return 'Poor';
+  else if (riskScore >= 25) return 'Moderate';
+  else if (riskScore >= 10) return 'Good';
+  else return 'Excellent';
 };
 
 /**
