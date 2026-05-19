@@ -1,9 +1,9 @@
 /**
- * Pure, framework-free helpers for farm form data. Kept side-effect free so
- * they're trivial to unit test (see farm.test.ts) and reusable from any hook
- * or component — the caller decides how to surface the result (toast, inline
- * error, etc.).
+ * Pure, framework-free helpers for farm data — form validation and crop
+ * calendar maths. Kept side-effect free so they're trivial to unit test
+ * (see farm.test.ts) and reusable from any hook or component.
  */
+import { CROP_CALENDAR } from '@/constants/farm';
 
 /**
  * Validate a farm's planting/harvest date pair.
@@ -42,4 +42,68 @@ export function validateFarmForm(input: {
     return 'Please draw your farm boundary on the map';
   }
   return null;
+}
+
+/**
+ * Convert a 3-letter month name (`Jan`–`Dec`) to its 1-12 number.
+ * An unrecognised name falls back to 1 (January).
+ */
+export function monthNameToNumber(monthName: string): number {
+  const months: Record<string, number> = {
+    Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+    Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+  };
+  return months[monthName] || 1;
+}
+
+/**
+ * Derive default planting and harvest dates for a crop from its sowing/
+ * harvest calendar, relative to a reference date.
+ *
+ * @param cropName an arbitrary string; an unknown crop yields empty dates.
+ * @param referenceDate the "now" the result is calculated against.
+ * @returns `YYYY-MM-DD` planting/harvest dates, or empty strings for an
+ *   unknown crop.
+ */
+export function calculateCropDates(
+  cropName: string,
+  referenceDate: Date = new Date()
+): { plantingDate: string; harvestDate: string } {
+  // cropName is an arbitrary string — look it up against the known crops and
+  // fall back when it isn't one (noUncheckedIndexedAccess makes this safe).
+  const calendar = CROP_CALENDAR[cropName as keyof typeof CROP_CALENDAR];
+  if (!calendar) {
+    return { plantingDate: '', harvestDate: '' };
+  }
+
+  const currentMonth = referenceDate.getMonth() + 1; // 1-12
+  const currentYear = referenceDate.getFullYear();
+
+  // Convert cultivation and harvest months to numbers
+  const cultivationMonths = calendar.cultivation.map(monthNameToNumber);
+  const harvestMonths = calendar.harvest.map(monthNameToNumber);
+
+  // Find the cultivation month - prioritize past cultivations
+  let plantingYear = currentYear;
+  const plantingMonth = cultivationMonths[0]!;
+
+  // If earliest cultivation month hasn't occurred yet this year, look back to last year
+  if (plantingMonth > currentMonth) {
+    plantingYear = currentYear - 1;
+  }
+
+  // Find harvest month - use the first one after the cultivation period ends
+  const maxCultivationMonth = Math.max(...cultivationMonths);
+  let harvestYear = plantingYear;
+  const harvestMonth = harvestMonths[0]!;
+
+  // If harvest month is in an earlier month than max cultivation, it's in the next year
+  if (harvestMonth <= maxCultivationMonth) {
+    harvestYear = plantingYear + 1;
+  }
+
+  const plantingDateString = `${plantingYear}-${String(plantingMonth).padStart(2, '0')}-01`;
+  const harvestDateString = `${harvestYear}-${String(harvestMonth).padStart(2, '0')}-01`;
+
+  return { plantingDate: plantingDateString, harvestDate: harvestDateString };
 }

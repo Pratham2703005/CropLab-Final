@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateFarmDates, validateFarmForm } from './farm';
+import {
+  calculateCropDates,
+  monthNameToNumber,
+  validateFarmDates,
+  validateFarmForm,
+} from './farm';
 
 describe('farm', () => {
   describe('validateFarmDates', () => {
@@ -113,6 +118,49 @@ describe('farm', () => {
           coordinates: [],
         })
       ).toBe('Please select a planting date');
+    });
+  });
+
+  describe('monthNameToNumber', () => {
+    it.each([
+      { name: 'January', month: 'Jan', expected: 1 },
+      { name: 'June', month: 'Jun', expected: 6 },
+      { name: 'December', month: 'Dec', expected: 12 },
+      { name: 'an unknown name (falls back to 1)', month: 'Xyz', expected: 1 },
+      { name: 'an empty string (falls back to 1)', month: '', expected: 1 },
+    ])('returns $expected for $name', ({ month, expected }) => {
+      expect(monthNameToNumber(month)).toBe(expected);
+    });
+  });
+
+  describe('calculateCropDates', () => {
+    // Fixed reference date (15 Aug 2025) keeps the calculation deterministic.
+    const refDate = new Date(2025, 7, 15);
+
+    it.each([
+      {
+        // Wheat is sown Oct-Dec — later than the Aug reference month — so the
+        // planting year rolls back a year and harvest lands the next spring.
+        name: 'a crop sown after the reference month (planting year rolls back)',
+        crop: 'Wheat',
+        expected: { plantingDate: '2024-10-01', harvestDate: '2025-03-01' },
+      },
+      {
+        // Rice is sown Jun-Jul — before the Aug reference month — so planting
+        // stays in the current year and harvest follows the same year.
+        name: 'a crop sown before the reference month (same year)',
+        crop: 'Rice',
+        expected: { plantingDate: '2025-06-01', harvestDate: '2025-10-01' },
+      },
+    ])('computes dates for $name', ({ crop, expected }) => {
+      expect(calculateCropDates(crop, refDate)).toEqual(expected);
+    });
+
+    it('returns empty dates for an unknown crop', () => {
+      expect(calculateCropDates('Dragonfruit', refDate)).toEqual({
+        plantingDate: '',
+        harvestDate: '',
+      });
     });
   });
 });
