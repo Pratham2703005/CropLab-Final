@@ -2,7 +2,7 @@ import type { Farm } from "@/types"
 import { formatHectares } from "@/utils"
 import { Link } from "react-router-dom"
 import { Plus, Moon, Lock, Pause } from "lucide-react"
-import cropData from "@/assets/p.json"
+import cropData from "@/assets/dashboard-crops.json"
 import { useServerStatus } from "@/contexts/serverStatus"
 
 type LockVariant = 'waking' | 'paused' | 'offline';

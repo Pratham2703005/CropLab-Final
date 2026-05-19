@@ -16,7 +16,7 @@ import { calculateCropDates } from '@/utils/farm';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 import { useFarms } from '@/hooks/farm/useFarms';
 import { formatHectares, formatDateForDisplay } from '@/utils';
-import cropData from '@/assets/p.json';
+import cropData from '@/assets/dashboard-crops.json';
 import { CROP_OPTIONS } from '@/constants/farm';
 import type { CropType, FarmFormData } from '@/types/farm';
 
