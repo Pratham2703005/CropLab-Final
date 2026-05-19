@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 import { useForm } from 'react-hook-form';
 import { useFarms } from '@/hooks/farm/useFarms';
-import type { FarmFormData } from '../types/farm';
-import { CROP_OPTIONS, calculateCropDates } from '../types/farm';
+import type { CropType, FarmFormData } from '../types/farm';
+import { calculateCropDates } from '../types/farm';
+import { CROP_OPTIONS } from '../constants/farm';
 import { LeafletMap } from '../components/map/LeafletMap';
 import {
   ArrowLeft,
@@ -37,7 +38,7 @@ export const CreateFarm: React.FC = () => {
 
   const plantingDate = watch('plantingDate');
   const harvestDate = watch('harvestDate');
-  const selectedCrop = watch('crop');
+  const selectedCrop = watch('crop') as CropType;
 
   // Auto-fill planting and harvest dates when crop is selected
   useEffect(() => {

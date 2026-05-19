@@ -1,4 +1,4 @@
-import type { MAP_MASK_MODES, MASKS_VIEW_MODES } from "@/constants/farm";
+import { CROP_CALENDAR, type CROP_OPTIONS, type MAP_MASK_MODES, type MASKS_VIEW_MODES } from "@/constants/farm";
 
 export interface Farm {
   id: string;
@@ -184,94 +184,8 @@ export interface WeatherData {
   weather_description?: string;
 }
 
-export const CROP_OPTIONS = [
-  'Wheat',
-  'Rice',
-  'Corn',
-  'Soybeans',
-  'Cotton',
-  'Sugarcane',
-  'Potato',
-  'Tomato',
-  'Onion',
-  'Cabbage',
-  'Carrot',
-  'Beans',
-  'Peas',
-  'Sunflower',
-  'Barley',
-  'Oats',
-] as const;
-
 export type CropType = (typeof CROP_OPTIONS)[number];
 
-// Crop calendar with cultivation and harvest months
-export const CROP_CALENDAR: Record<string, { cultivation: string[]; harvest: string[] }> = {
-  Wheat: {
-    cultivation: ['Oct', 'Nov', 'Dec'],
-    harvest: ['Mar', 'Apr'],
-  },
-  Rice: {
-    cultivation: ['Jun', 'Jul'],
-    harvest: ['Oct', 'Nov'],
-  },
-  Corn: {
-    cultivation: ['Jun', 'Jul'],
-    harvest: ['Sep', 'Oct'],
-  },
-  Soybeans: {
-    cultivation: ['Jun', 'Jul'],
-    harvest: ['Oct', 'Nov'],
-  },
-  Cotton: {
-    cultivation: ['Apr', 'May', 'Jun'],
-    harvest: ['Nov', 'Dec', 'Jan'],
-  },
-  Sugarcane: {
-    cultivation: ['Feb', 'Mar', 'Oct', 'Nov'],
-    harvest: ['Nov', 'Dec', 'Jan', 'Feb'],
-  },
-  Potato: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Jan', 'Feb'],
-  },
-  Tomato: {
-    cultivation: ['Jun', 'Jul', 'Nov', 'Dec'],
-    harvest: ['Sep', 'Oct', 'Feb', 'Mar'],
-  },
-  Onion: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Feb', 'Mar'],
-  },
-  Cabbage: {
-    cultivation: ['Sep', 'Oct'],
-    harvest: ['Jan', 'Feb'],
-  },
-  Carrot: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Jan', 'Feb'],
-  },
-  Beans: {
-    cultivation: ['Jun', 'Jul'],
-    harvest: ['Sep', 'Oct'],
-  },
-  Peas: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Jan', 'Feb'],
-  },
-  Sunflower: {
-    cultivation: ['Jan', 'Feb', 'Jun', 'Jul'],
-    harvest: ['Apr', 'May', 'Sep', 'Oct'],
-  },
-  Barley: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Mar', 'Apr'],
-  },
-  Oats: {
-    cultivation: ['Oct', 'Nov'],
-    harvest: ['Mar', 'Apr'],
-  },
-};
 
 // Helper function to convert month name to number (1-12)
 const monthNameToNumber = (monthName: string): number => {
@@ -287,7 +201,9 @@ export const calculateCropDates = (
   cropName: string,
   referenceDate: Date = new Date()
 ): { plantingDate: string; harvestDate: string } => {
-  const calendar = CROP_CALENDAR[cropName];
+  // cropName is an arbitrary string — look it up against the known crops and
+  // fall back when it isn't one (noUncheckedIndexedAccess makes this safe).
+  const calendar = CROP_CALENDAR[cropName as keyof typeof CROP_CALENDAR];
   if (!calendar) {
     return { plantingDate: '', harvestDate: '' };
   }
