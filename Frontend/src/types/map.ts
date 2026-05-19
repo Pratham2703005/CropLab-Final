@@ -61,6 +61,8 @@ export interface HeatmapOverlayProps {
   focusRequestId?: number;
   viewMode?: MasksViewMode; // 'masks' shows discrete colors, 'range' shows gradient
   rangeOpacity?: number; // 0-1, only used in range mode
+  layerControlsVisible?: boolean; // whether the opacity/layer controller is open
+  onToggleLayerControls?: () => void; // toggle the opacity/layer controller
 }
 
 export interface MaskOverlay {

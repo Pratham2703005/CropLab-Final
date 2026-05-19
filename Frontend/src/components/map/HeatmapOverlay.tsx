@@ -111,6 +111,8 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
   focusRequestId,
   viewMode = 'masks',
   rangeOpacity = 0.7,
+  layerControlsVisible = true,
+  onToggleLayerControls,
 }) => {
   const [mapStyle, setMapStyle] = useState<MapStyle>(
     MAP_STYLES.HYBRID
@@ -389,8 +391,8 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
         </MapContainer>
       </div>
 
-      {/* Left Side Controls Panel */}
-      <div className='absolute top-3 left-3 z-[1000] bg-white backdrop-blur-sm rounded-md shadow-lg border border-neutral-700'>
+      {/* Left Side Controls Panel — offset below the page's back button */}
+      <div className='absolute top-16 left-3 z-[1000] bg-white backdrop-blur-sm rounded-md shadow-lg border border-neutral-700'>
         <div className='p-2 space-y-1.5'>
           {/* Navigation Tools */}
           <button
@@ -444,15 +446,22 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
           </button>
 
           {/* Heatmap Controls Toggle */}
-          {heatmapData && (
+          {heatmapData && onToggleLayerControls && (
             <button
               type='button'
-              onClick={() => setShowStyleSelector(false)}
-              className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all duration-200 group bg-white text-black hover:bg-gray-100`}
-              title='Layer controls are now in bottom-left'
-              disabled
+              onClick={onToggleLayerControls}
+              className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all duration-200 group ${
+                layerControlsVisible
+                  ? 'bg-gray-100 text-black'
+                  : 'bg-white text-black hover:bg-gray-100'
+              }`}
+              title={
+                layerControlsVisible
+                  ? 'Hide layer controls'
+                  : 'Show layer controls'
+              }
             >
-              <Settings className='h-4 w-4 group-hover:scale-110 transition-transform opacity-50' />
+              <Settings className='h-4 w-4 group-hover:scale-110 transition-transform' />
             </button>
           )}
         </div>

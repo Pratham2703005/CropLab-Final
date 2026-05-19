@@ -55,6 +55,7 @@ export default function FarmDetail() {
   const [maskVisibility, setMaskVisibility] = useState<Record<string, boolean>>(DEFAULT_MASK_VISIBILITY);
   const [viewMode, setViewMode] = useState<MasksViewMode>(MASKS_VIEW_MODES.MASKS);
   const [rangeOpacity, setRangeOpacity] = useState(DEFAULT_RANGE_OPACITY);
+  const [showLayerControls, setShowLayerControls] = useState(true);
 
   // Set farm when farms are loaded
   useEffect(() => {
@@ -327,10 +328,12 @@ export default function FarmDetail() {
           focusRequestId={mapFocusRequestId}
           viewMode={viewMode}
           rangeOpacity={rangeOpacity}
+          layerControlsVisible={showLayerControls}
+          onToggleLayerControls={() => setShowLayerControls(prev => !prev)}
         />
 
         {/* Map Layer Selector (Bottom-Left) */}
-        {!heatmapLoading && (
+        {!heatmapLoading && showLayerControls && (
           <MapLayerSelector
             activeLayer={activeLayer}
             onLayerChange={setActiveLayer}
