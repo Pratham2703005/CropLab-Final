@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { useGuestFarmStore } from '../../stores/guestFarmStore';
 import { SHOWCASE_FARMS, isShowcaseFarmId } from '../../utils/showcaseFarms';
+import { heatmapService } from '../../services/fileDatabase';
 import type { Farm, FarmFormData } from '../../types/farm';
 
 /**
@@ -74,6 +75,22 @@ export const useFarms = () => {
     [updateGuestFarm]
   );
 
+  // Update a farm and drop its cached heatmap. Editing the boundary, dates,
+  // or crop invalidates the previously generated analysis — clearing the
+  // cache forces the detail page to refetch fresh imagery instead of showing
+  // stale results. A cache-clear failure is logged but never blocks the save.
+  const updateFarmAndInvalidateHeatmap = useCallback(
+    async (id: string, farmData: Partial<Farm>) => {
+      await updateFarm(id, farmData);
+      try {
+        await heatmapService.clearByFarmId(id);
+      } catch (cacheErr) {
+        console.error('Error clearing local heatmap cache:', cacheErr);
+      }
+    },
+    [updateFarm]
+  );
+
   const deleteFarm = useCallback(
     async (id: string) => {
       deleteGuestFarm(id);
@@ -89,6 +106,7 @@ export const useFarms = () => {
     fetchFarms,
     addFarm,
     updateFarm,
+    updateFarmAndInvalidateHeatmap,
     deleteFarm,
     getFarmById,
     setCurrentFarm,

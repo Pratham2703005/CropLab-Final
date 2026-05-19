@@ -9,13 +9,14 @@ import { ArrowLeft, Sprout, MapPin, Calendar, Save, X } from 'lucide-react';
 import { formatHectares, formatDateForDisplay } from '@/utils';
 import { toast } from 'robot-toast';
 import { DEFAULT_FARM_DETAIL_KEYS } from '@/constants/farm';
-import { heatmapService } from '../services/fileDatabase';
+import { validateFarmForm } from '@/utils/farm';
 import { useCropLabNavigation } from '@/hooks/useCropLabNavigation';
 
 export default function EditFarm() {
   const { id } = useParams<{ id: string }>();
   const { navigateToFarmDetails } = useCropLabNavigation();
-  const { getFarmById, updateFarm, loading, error } = useFarms();
+  const { getFarmById, updateFarmAndInvalidateHeatmap, loading, error } =
+    useFarms();
   const [coordinates, setCoordinates] = useState<number[][]>([]);
   const [area, setArea] = useState<number>(0);
   const [displayPlantingDate, setDisplayPlantingDate] = useState<string>('');
@@ -142,37 +143,14 @@ export default function EditFarm() {
   }
 
   const onSubmit = async (data: FarmFormData) => {
-    // Validate dates
-    if (!data.plantingDate) {
+    const validationError = validateFarmForm({
+      plantingDate: data.plantingDate,
+      harvestDate: data.harvestDate,
+      coordinates,
+    });
+    if (validationError) {
       toast.error({
-        message: 'Please select a planting date',
-        robotVariant: '/wheat-error.png',
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    if (!data.harvestDate) {
-      toast.error({
-        message: 'Please select a harvest date',
-        robotVariant: '/wheat-error.png',
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    if (data.harvestDate <= data.plantingDate) {
-      toast.error({
-        message: 'Harvest date must be after planting date',
-        robotVariant: '/wheat-error.png',
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    if (coordinates.length === 0) {
-      toast.error({
-        message: 'Please draw your farm boundary on the map',
+        message: validationError,
         robotVariant: '/wheat-error.png',
         autoClose: 3000,
       });
@@ -183,18 +161,13 @@ export default function EditFarm() {
       if (!farm) {
         throw new Error('Farm not found');
       }
-      await updateFarm(farm.id, {
+      // Clearing the stale heatmap cache is part of the update workflow —
+      // see useFarms.updateFarmAndInvalidateHeatmap.
+      await updateFarmAndInvalidateHeatmap(farm.id, {
         ...data,
         coordinates,
         area,
       });
-      // Drop the cached heatmap so the detail page refetches fresh analysis
-      // for the new boundary/dates/crop instead of showing stale imagery.
-      try {
-        await heatmapService.clearByFarmId(farm.id);
-      } catch (cacheErr) {
-        console.error('Error clearing local heatmap cache:', cacheErr);
-      }
       toast.success({
         message: 'Farm updated successfully!',
         robotVariant: '/wheat-base.png',
