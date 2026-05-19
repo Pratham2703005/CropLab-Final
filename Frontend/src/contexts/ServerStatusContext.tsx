@@ -28,7 +28,9 @@ import {
 } from './serverStatus';
 
 const SESSION_KEY = 'croplab.serverReady';
-const POLL_INTERVAL_MS = 5000;
+const POLL_BASE_INTERVAL_MS = 5000; // delay before the first retry
+const POLL_MAX_INTERVAL_MS = 60000; // backoff ceiling
+const POLL_BACKOFF_FACTOR = 1.8; // each retry waits this much longer
 const REQUEST_TIMEOUT_MS = 10000;
 const DEADLINE_MS = 3 * 60 * 1000;
 
@@ -50,12 +52,14 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ServerStatus>(
     alreadyReady ? 'ready' : 'checking'
   );
-  const [attempts, setAttempts] = useState(0);
-  const [lastCheckAt, setLastCheckAt] = useState<number | null>(null);
 
   // All poll bookkeeping in refs so React StrictMode's double-mount can't
   // spawn two live pollers.
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Current backoff delay; grows after each failed check, reset on (re)start.
+  const pollDelayRef = useRef(POLL_BASE_INTERVAL_MS);
+  // Forward ref so the scheduler can reach the latest checkHealth.
+  const checkHealthRef = useRef<() => void>(() => {});
   const deadlineRef = useRef<number | null>(null);
   const activeControllerRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
@@ -64,17 +68,26 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
   // `status` — callers set the appropriate status.
   const halt = useCallback(() => {
     stoppedRef.current = true;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
     activeControllerRef.current?.abort();
     activeControllerRef.current = null;
   }, []);
 
-  const recordCheck = useCallback(() => {
-    setAttempts(a => a + 1);
-    setLastCheckAt(Date.now());
+  // Queue the next health check after the current backoff delay, then grow
+  // that delay (capped) so each retry waits exponentially longer.
+  const scheduleNextPoll = useCallback(() => {
+    if (stoppedRef.current) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      void checkHealthRef.current();
+    }, pollDelayRef.current);
+    pollDelayRef.current = Math.min(
+      pollDelayRef.current * POLL_BACKOFF_FACTOR,
+      POLL_MAX_INTERVAL_MS
+    );
   }, []);
 
   const checkHealth = useCallback(async () => {
@@ -95,13 +108,13 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
         cache: 'no-store',
       });
       if (stoppedRef.current) return;
-      recordCheck();
 
       if (!res.ok) {
         // Server reachable but erroring (often mid-boot) — keep waking.
         setStatus(prev =>
           prev === 'ready' || prev === 'degraded' ? prev : 'waking'
         );
+        scheduleNextPoll();
         return;
       }
 
@@ -130,27 +143,31 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
     } catch {
       // AbortError (timeout) or network failure — server still asleep.
       if (stoppedRef.current) return;
-      recordCheck();
       setStatus(prev =>
         prev === 'ready' || prev === 'degraded' ? prev : 'waking'
       );
+      scheduleNextPoll();
     } finally {
       clearTimeout(timeoutId);
     }
-  }, [halt, recordCheck]);
+  }, [halt, scheduleNextPoll]);
+
+  // Keep the forward ref pointed at the latest checkHealth so the scheduler
+  // always calls the current closure.
+  checkHealthRef.current = checkHealth;
 
   const runPoller = useCallback(() => {
     stoppedRef.current = false;
     deadlineRef.current = Date.now() + DEADLINE_MS;
-    checkHealth(); // fire immediately — don't wait the first interval
-    intervalRef.current = setInterval(checkHealth, POLL_INTERVAL_MS);
+    pollDelayRef.current = POLL_BASE_INTERVAL_MS; // reset backoff on (re)start
+    checkHealth(); // fire immediately — checkHealth queues each retry
   }, [checkHealth]);
 
   useEffect(() => {
     if (alreadyReady) return;
     runPoller();
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       activeControllerRef.current?.abort();
     };
   }, [alreadyReady, runPoller]);
@@ -162,8 +179,6 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
 
   const startPolling = useCallback(() => {
     setStatus('checking');
-    setAttempts(0);
-    setLastCheckAt(null);
     runPoller();
   }, [runPoller]);
 
@@ -172,12 +187,10 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
       status,
       isReady: status === 'ready' || status === 'degraded',
       isPolling: status === 'checking' || status === 'waking',
-      attempts,
-      lastCheckAt,
       stopPolling,
       startPolling,
     }),
-    [status, attempts, lastCheckAt, stopPolling, startPolling]
+    [status, stopPolling, startPolling]
   );
 
   return (

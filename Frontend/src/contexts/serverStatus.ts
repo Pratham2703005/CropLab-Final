@@ -19,10 +19,6 @@ export interface ServerStatusValue {
   isReady: boolean;
   /** True while the poller is actively contacting the backend. */
   isPolling: boolean;
-  /** Number of completed health checks since polling (re)started. */
-  attempts: number;
-  /** Timestamp (ms) of the last completed health check, or null. */
-  lastCheckAt: number | null;
   /** Stop contacting the backend. */
   stopPolling: () => void;
   /** (Re)start polling the backend. */

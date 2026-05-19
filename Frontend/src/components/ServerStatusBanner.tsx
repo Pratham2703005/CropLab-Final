@@ -1,21 +1,13 @@
 /**
  * Dashboard banner that surfaces the live backend wake-up state. Replaces
- * toast notifications — shows the current poll status (attempts, last check),
- * with a Stop / Start polling control. Renders nothing once the server is
- * ready.
+ * toast notifications — shows the current poll status with a Stop / Start
+ * polling control. Renders nothing once the server is ready.
  */
 import { AlertTriangle, Pause, Play } from 'lucide-react';
 import { useServerStatus } from '@/contexts/serverStatus';
 
-const fmtTime = (ts: number | null): string =>
-  ts ? new Date(ts).toLocaleTimeString() : '—';
-
-const plural = (n: number, word: string): string =>
-  `${n} ${word}${n === 1 ? '' : 's'}`;
-
 export function ServerStatusBanner() {
-  const { status, attempts, lastCheckAt, isPolling, stopPolling, startPolling } =
-    useServerStatus();
+  const { status, isPolling, stopPolling, startPolling } = useServerStatus();
 
   if (status === 'ready') return null;
 
@@ -29,8 +21,7 @@ export function ServerStatusBanner() {
     showSpinner = true;
     message = (
       <>
-        <span className='font-semibold'>Contacting the backend…</span> Sending
-        the first health check.
+        Connecting to Server.
       </>
     );
   } else if (status === 'waking') {
@@ -38,31 +29,21 @@ export function ServerStatusBanner() {
     showSpinner = true;
     message = (
       <>
-        <span className='font-semibold'>Backend hasn't woken up yet.</span>{' '}
-        {plural(attempts, 'health check')} failed — last checked{' '}
-        {fmtTime(lastCheckAt)}. It's on Render's free tier (~30–60s to wake);
-        retrying every 5s. Showcase farms work now.
+        Server is waking up, this can take up to 2 minutes. Try Showcase farms in the meantime. 
       </>
     );
   } else if (status === 'degraded') {
     tone = 'orange';
     message = (
       <>
-        <span className='font-semibold'>Backend is degraded.</span> The server
-        responded but its satellite engine failed to start — heatmap
-        generation may not work.
+        <span className='font-semibold'>Server is degraded.</span> Google Earth Engine Failed to start. This can happen if the server is overloaded. Try again later or contact support if the issue persists.
       </>
     );
   } else if (status === 'stopped') {
     tone = 'slate';
     message = (
       <>
-        <span className='font-semibold'>Health polling stopped.</span> The
-        backend is not being contacted
-        {attempts > 0
-          ? ` (${plural(attempts, 'check')} made, last ${fmtTime(lastCheckAt)})`
-          : ''}
-        . Your own farms stay locked until you resume.
+        Server Connection stopped.
       </>
     );
   } else {
@@ -70,9 +51,7 @@ export function ServerStatusBanner() {
     tone = 'red';
     message = (
       <>
-        <span className='font-semibold'>Backend unreachable.</span> Gave up
-        after 3 minutes — {plural(attempts, 'health check')} failed. Showcase
-        farms still work; your own farms need the server.
+        Unable yo connect to the server. Please check your internet connection and try again. If the problem persists, contact support.
       </>
     );
   }
