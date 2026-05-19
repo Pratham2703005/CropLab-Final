@@ -7,9 +7,10 @@ import {
   bandsPlaceholder,
   formatAnalysisDate,
 } from './sidebar';
-import type { HealthLabel } from '@/types/sidebar';
+import type { HealthLabel, HealthTrend } from '@/types/sidebar';
 import type { HeatmapData, MaskOverlay } from '@/types';
 import { NDVI_MASK_SET, NDWI_MASK_SET } from '@/constants/map';
+import { HEALTH_TRENDS } from '@/constants/sidebar';
 
 type PixelCounts = HeatmapData['pixel_counts'];
 type NdviTrend = { date: string; mean_ndvi: number }[];
@@ -100,7 +101,7 @@ describe('sidebar', () => {
     it.each<{
       name: string;
       input: NdviTrend | undefined;
-      direction: 'improving' | 'declining' | 'stable' | null;
+      direction: HealthTrend;
       deltaPct: number;
       priorYears: number;
     }>([
@@ -125,7 +126,7 @@ describe('sidebar', () => {
           { date: '2024-01-01', mean_ndvi: 0.4 },
           { date: '2025-01-01', mean_ndvi: 0.5 },
         ],
-        direction: 'improving',
+        direction: HEALTH_TRENDS.IMPROVING,
         deltaPct: 25,
         priorYears: 1,
       },
@@ -136,7 +137,7 @@ describe('sidebar', () => {
           { date: '2024-01-01', mean_ndvi: 0.6 },
           { date: '2025-01-01', mean_ndvi: 0.5 },
         ],
-        direction: 'declining',
+        direction: HEALTH_TRENDS.DECLINING,
         deltaPct: -16.7,
         priorYears: 1,
       },
@@ -147,7 +148,7 @@ describe('sidebar', () => {
           { date: '2024-01-01', mean_ndvi: 0.5 },
           { date: '2025-01-01', mean_ndvi: 0.51 },
         ],
-        direction: 'stable',
+        direction: HEALTH_TRENDS.STABLE,
         deltaPct: 2,
         priorYears: 1,
       },
@@ -157,7 +158,7 @@ describe('sidebar', () => {
           { date: '2025-01-01', mean_ndvi: 0.5 },
           { date: '2024-01-01', mean_ndvi: 0.4 },
         ],
-        direction: 'improving',
+        direction: HEALTH_TRENDS.IMPROVING,
         deltaPct: 25,
         priorYears: 1,
       },
@@ -169,7 +170,7 @@ describe('sidebar', () => {
           { date: '2024-01-01', mean_ndvi: 0.45 },
           { date: '2025-01-01', mean_ndvi: 0.6 },
         ],
-        direction: 'improving',
+        direction: HEALTH_TRENDS.IMPROVING,
         deltaPct: 41.2,
         priorYears: 2,
       },

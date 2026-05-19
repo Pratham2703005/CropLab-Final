@@ -5,3 +5,10 @@ export const HEALTH_STYLES = {
   Poor: 'bg-orange-100 text-orange-800 border-orange-200',
   Critical: 'bg-red-100 text-red-800 border-red-200',
 };
+
+export const HEALTH_TRENDS = {
+  // 'improving' | 'stable' | 'declining'
+  IMPROVING: 'improving',
+  STABLE: 'stable',
+  DECLINING: 'declining'
+} as const;

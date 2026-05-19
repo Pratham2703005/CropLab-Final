@@ -1,9 +1,9 @@
-import { HEALTH_STYLES } from '@/constants/sidebar';
+import { HEALTH_STYLES, HEALTH_TRENDS } from '@/constants/sidebar';
 import type { Farm, HeatmapData, MaskOverlay } from '@/types';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
 
-export type HealthTrend = 'improving' | 'stable' | 'declining' | null;
+export type HealthTrend = (typeof HEALTH_TRENDS[keyof typeof HEALTH_TRENDS]) | null;
 
 export interface HealthTrendInfo {
   direction: HealthTrend;

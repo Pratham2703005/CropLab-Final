@@ -2,6 +2,7 @@ import { NDRE_MASK_SET, NDVI_MASK_SET, NDWI_MASK_SET } from '@/constants/map';
 import type { HealthLabel, HealthTrendInfo, BandShare } from '@/types/sidebar';
 import type { MaskOverlay } from '@/types/map';
 import type { HeatmapData } from '@/types/farm';
+import { HEALTH_TRENDS } from '@/constants/sidebar';
 
 /**
  * Derives overall crop health status based on risk score
@@ -67,10 +68,10 @@ export const computeHealthTrend = (
   const deltaPct = ((latest - priorAvg) / Math.abs(priorAvg)) * 100;
   const priorYearsCount = priorPoints.length;
   if (Math.abs(deltaPct) < 3) {
-    return { direction: 'stable', deltaPct, priorYearsCount };
+    return { direction: HEALTH_TRENDS.STABLE, deltaPct, priorYearsCount };
   }
   return {
-    direction: deltaPct > 0 ? 'improving' : 'declining',
+    direction: deltaPct > 0 ? HEALTH_TRENDS.IMPROVING : HEALTH_TRENDS.DECLINING,
     deltaPct,
     priorYearsCount,
   };
