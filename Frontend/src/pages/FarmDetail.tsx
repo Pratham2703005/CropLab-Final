@@ -23,7 +23,7 @@ import { DEFAULT_MASK_OPACITY, DEFAULT_MASK_VISIBILITY } from '@/constants/map';
 
 export default function FarmDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getFarmById, deleteFarm, loading, farms } = useFarms();
+  const { deleteFarm, loading, farms } = useFarms();
   const { navigateToDashboard } = useCropLabNavigation();
   const {
     heatmapData,
@@ -44,7 +44,6 @@ export default function FarmDetail() {
     [id]
   );
 
-  const [farm, setFarm] = React.useState<Farm | null>(null);
   const [hasInitiallyFetchedHeatmap, setHasInitiallyFetchedHeatmap] =
     React.useState(false);
   const [activeLayer, setActiveLayer] = useState<MapMaskMode>(MAP_MASK_MODES.NDVI);
@@ -57,13 +56,14 @@ export default function FarmDetail() {
   const [rangeOpacity, setRangeOpacity] = useState(DEFAULT_RANGE_OPACITY);
   const [showLayerControls, setShowLayerControls] = useState(true);
 
-  // Set farm when farms are loaded
-  useEffect(() => {
-    if (!loading && id && farms.length > 0) {
-      const foundFarm = getFarmById(id);
-      setFarm(foundFarm ?? null);
-    }
-  }, [loading, id, getFarmById, farms]);
+  // Resolve the farm synchronously from the loaded list. Deriving it with
+  // useMemo (instead of state updated by an effect) means `farm` is correct
+  // on the first render where `farms` is populated — without this, an effect
+  // sets `farm` a render too late and the "Farm Not Found" guard flashes.
+  const farm = useMemo<Farm | null>(
+    () => (!loading && id ? (farms.find(f => f.id === id) ?? null) : null),
+    [loading, id, farms]
+  );
 
   // Fetch growing-season weather calendar when farm is loaded
   useEffect(() => {
@@ -181,7 +181,10 @@ export default function FarmDetail() {
   // Deep-link guard: a pasted /farm/:id URL bypasses the dashboard lock.
   // A non-showcase farm with no cached heatmap needs the backend — if the
   // server isn't ready, show an interstitial instead of erroring.
-  const blocked = !!farm && !farm.isShowcase && !isReady && !heatmapCached;
+  // `!heatmapData` keeps the user on a page that already loaded its heatmap
+  // (cached or fetched this session) even if the backend later goes away.
+  const blocked =
+    !!farm && !farm.isShowcase && !isReady && !heatmapCached && !heatmapData;
   if (blocked) {
     // 'error' (gave up) and 'stopped' (polling halted) both need a manual
     // action — show the actionable screen rather than the waiting spinner.
