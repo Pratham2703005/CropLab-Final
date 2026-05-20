@@ -94,16 +94,18 @@ export const calculateBounds = (coordinates: number[][]): L.LatLngBounds | null 
     return null;
   }
 
-  // Convert [lng, lat] to [lat, lng] and filter invalid entries
+  // Convert [lng, lat] to [lat, lng] and filter invalid entries.
+  // `Number.isFinite` rejects NaN/Infinity — Leaflet's `latLng()` throws on
+  // those, so we must drop them here before computing bounds.
   const leafletCoords: [number, number][] = coordinates
     .filter(
       (coord): coord is [number, number] =>
         Array.isArray(coord) &&
         coord.length >= 2 &&
-        typeof coord[0] === 'number' &&
-        typeof coord[1] === 'number'
+        Number.isFinite(coord[0]) &&
+        Number.isFinite(coord[1])
     )
-    .map(coord => [coord[1], coord[0]]); // [lng, lat] -> [lat, lng]
+    .map(coord => [coord[1]!, coord[0]!]); // [lng, lat] -> [lat, lng]
 
   if (leafletCoords.length === 0) {
     return null;

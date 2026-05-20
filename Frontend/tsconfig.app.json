@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -34,8 +34,8 @@
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": true,
 
-    /* Module Resolution */
-    "baseUrl": ".",
+    /* Module Resolution — paths resolve relative to this file under
+       `moduleResolution: bundler`, so `baseUrl` is unnecessary. */
     "paths": {
       "@/*": ["./src/*"],
       "@/components/*": ["./src/components/*"],

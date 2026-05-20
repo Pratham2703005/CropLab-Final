@@ -76,13 +76,11 @@ describe('getPolygonCenter', () => {
       name: 'complex polygon',
     },
   ])('$name: input=$input → output=$expected', ({ input, expected }) => {
+    // Always compare with `toBeCloseTo` — even small inputs like 75.7667 +
+    // 77.7884 hit float-precision rounding (`76.77754999999999`).
     const result = getPolygonCenter(input);
-    if (expected[0] > 100 || expected[1] > 100) {
-      expect(result[0]).toBeCloseTo(expected[0], 4);
-      expect(result[1]).toBeCloseTo(expected[1], 4);
-    } else {
-      expect(result).toEqual(expected);
-    }
+    expect(result[0]).toBeCloseTo(expected[0], 4);
+    expect(result[1]).toBeCloseTo(expected[1], 4);
   });
 
   it('should not mutate input array (pure function)', () => {

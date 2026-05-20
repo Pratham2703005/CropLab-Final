@@ -22,4 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local env files (set real secrets in Vercel project settings, not here)
 .env
+.env.*
+!.env.example
+
+# Vitest coverage output
+coverage
