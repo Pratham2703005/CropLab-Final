@@ -1,5 +1,5 @@
 import { HEALTH_STYLES, HEALTH_TRENDS } from '@/constants/sidebar';
-import type { Farm, HeatmapData, MaskOverlay } from '@/types';
+import type { AgmarknetData, Farm, HeatmapData, MaskOverlay } from '@/types';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
 
@@ -23,4 +23,10 @@ export interface FarmOverviewPanelProps {
   onDelete: () => void;
   onOpenTrends: () => void;
   onViewOnMap: () => void;
+}
+
+export interface MandiRatesPanelProps {
+  agmarknet?: AgmarknetData | undefined;
+  detectedDistrict?: string;
+  aiAnalysis?: string;
 }

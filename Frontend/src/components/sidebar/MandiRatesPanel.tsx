@@ -10,26 +10,14 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { AgmarknetData } from '@/types/farm';
-
-interface MandiRatesPanelProps {
-  agmarknet?: AgmarknetData | undefined;
-  detectedDistrict?: string;
-  aiAnalysis?: string;
-}
-
-type Unit = 'quintal' | 'kg';
-
-const MONTH_NAMES = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december',
-] as const;
+import type { MandiRatesPanelProps, Unit, MonthNames } from '@/types';
+import { MONTH_NAMES } from '@/constants';
 
 const parsePriceKey = (key: string): readonly [number, number] => {
   const parts = key.replace('prices_', '').split('_');
   const year = parseInt(parts[parts.length - 1] ?? '0', 10);
   const monthIdx = MONTH_NAMES.indexOf(
-    (parts[0] ?? '').toLowerCase() as (typeof MONTH_NAMES)[number]
+    (parts[0] ?? '').toLowerCase() as MonthNames
   );
   return [year, monthIdx + 1] as const;
 };
