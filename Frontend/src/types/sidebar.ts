@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
 
-export type HealthTrend = (typeof HEALTH_TRENDS[keyof typeof HEALTH_TRENDS]) | null;
+export type HealthTrend = typeof HEALTH_TRENDS[keyof typeof HEALTH_TRENDS] | null;
 
 export interface HealthTrendInfo {
   direction: HealthTrend;
