@@ -4,7 +4,6 @@ import {
   Droplets,
   Wind,
   Sun,
-  AlertTriangle,
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
@@ -19,8 +18,7 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { PRIORITY_STYLES } from '@/constants';
-import type { AdvisoryItem, AlertItem, ExtendedWeatherData, WeatherDataPanelProps } from '@/types';
+import type { ExtendedWeatherData, WeatherDataPanelProps } from '@/types';
 
 const formatShortDate = (value: string): string => {
   const date = new Date(`${value}T00:00:00`);
@@ -138,8 +136,6 @@ export const WeatherDataPanel: React.FC<WeatherDataPanelProps> = ({
       precipitation: d.precipitation ?? 0,
     }));
 
-  const advisories: AdvisoryItem[] = [];
-
   const forecastSource = sortedData.filter(d => {
     const dayTs = new Date(`${d.date}T00:00:00`).getTime();
     const today = new Date();
@@ -150,8 +146,6 @@ export const WeatherDataPanel: React.FC<WeatherDataPanelProps> = ({
   const forecastStrip = (
     forecastSource.length > 0 ? forecastSource : sortedData.slice(-3)
   ).slice(0, 3);
-
-  const alerts: AlertItem[] = [];
 
   const cropImpactItems = [
     stats.avgTemp > 34 ? 'High heat stress risk - monitor irrigation closely' : 'Temperature levels within normal range',
@@ -293,38 +287,6 @@ export const WeatherDataPanel: React.FC<WeatherDataPanelProps> = ({
         )}
       </div>
 
-      {/* 7-Day Smart Advisory */}
-      <div className='rounded-xl border border-neutral-200 bg-[linear-gradient(145deg,#ffffff_0%,#f8fafc_100%)] p-3 shadow-sm'>
-        <div className='mb-2 flex items-center justify-between'>
-          <h4 className='text-sm font-semibold text-neutral-900'>
-            7-Day Smart Advisory
-          </h4>
-          <span className='rounded-full border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-[10px] font-semibold text-neutral-700'>
-            Actionable
-          </span>
-        </div>
-        <div className='space-y-2'>
-          {advisories.slice(0, 4).map(item => (
-            <div
-              key={item.title}
-              className='rounded-lg border border-neutral-200 bg-white p-2.5'
-            >
-              <div className='mb-1 flex items-start justify-between gap-2'>
-                <p className='text-xs font-semibold text-neutral-900'>
-                  {item.title}
-                </p>
-                <span
-                  className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${PRIORITY_STYLES[item.priority]}`}
-                >
-                  {item.priority}
-                </span>
-              </div>
-              <p className='text-[11px] text-neutral-600'>{item.reason}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Forecast Strip */}
       <div className='rounded-xl border border-neutral-200 bg-white p-3 shadow-sm'>
         <div className='mb-2 flex items-center justify-between'>
@@ -386,29 +348,6 @@ export const WeatherDataPanel: React.FC<WeatherDataPanelProps> = ({
         </div>
         <p className='text-xs leading-relaxed text-violet-800'>{aiInsight}</p>
       </div>
-
-      {/* Extreme Alerts */}
-      {alerts.length > 0 && (
-        <div className='space-y-2'>
-          {alerts.map(alert => (
-            <div
-              key={alert.title}
-              className='relative overflow-hidden rounded-lg border border-red-200 bg-red-50 p-3 shadow-sm'
-            >
-              <div className='absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(239,68,68,0.18),transparent_50%)]' />
-              <div className='relative flex gap-2'>
-                <AlertTriangle className='mt-0.5 h-4 w-4 animate-pulse text-red-600' />
-                <div>
-                  <p className='text-xs font-bold text-red-900'>
-                    {alert.title}
-                  </p>
-                  <p className='text-[11px] text-red-800'>{alert.message}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Crop Impact */}
       <div className='rounded-xl border border-emerald-200 bg-[linear-gradient(140deg,#ecfdf5_0%,#ffffff_70%)] p-3 shadow-sm'>

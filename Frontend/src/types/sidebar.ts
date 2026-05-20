@@ -142,17 +142,6 @@ export interface ExtendedWeatherData extends WeatherData {
   wind_speed?: number;
 }
 
-export interface AdvisoryItem {
-  title: string;
-  priority: PriorityLabel;
-  reason: string;
-}
-
-export interface AlertItem {
-  title: string;
-  message: string;
-}
-
 export interface WeatherDataPanelProps {
   calendarData: WeatherData[];
   plantingDate?: string;
