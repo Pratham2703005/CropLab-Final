@@ -16,10 +16,10 @@
     "export:showcase": "node -e \"process.stdout.write(require('fs').readFileSync('scripts/export-showcase-farms.js','utf8'))\"",
     "preview": "vite preview",
     "clean": "rm -rf dist node_modules/.vite",
-    "prepare": "npm run lint && npm run type-check"
+    "check": "npm run lint && npm run type-check"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
     "@types/node": "^24.3.1",

@@ -269,7 +269,7 @@ describe('calculateBounds', () => {
   });
 
   it('should return null for non-array input', () => {
-    const result = calculateBounds(null as any);
+    const result = calculateBounds(null as unknown as number[][]);
     expect(result).toBeNull();
   });
 
@@ -278,7 +278,7 @@ describe('calculateBounds', () => {
       [1], // too short
       ['a', 'b'], // non-numeric
       [NaN, 10],
-    ] as any);
+    ] as unknown as number[][]);
     expect(result).toBeNull();
   });
 
@@ -307,7 +307,7 @@ describe('calculateBounds', () => {
       [35, 15],
       ['invalid', 'coord'], // invalid - skip
       [40, 20],
-    ] as any;
+    ] as unknown as number[][];
 
     const result = calculateBounds(coordinates);
 
