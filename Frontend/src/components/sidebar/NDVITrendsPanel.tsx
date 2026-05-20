@@ -23,9 +23,6 @@ import {
 import type { ChartType, ChipLabel, HealthTrend, NDVITrendsPanelProps, PriorityLabel } from '@/types';
 import { CHART_TYPE, CHIP_LABELS, CHIP_STYLES, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY_LABELS, PRIORITY_STYLES, TREND_STYLES } from '@/constants';
 
-const formatShortDate = (date: Date): string =>
-  date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-
 // One label per yearly sample - the year is the dimension that varies, the
 // month/day stays fixed because all 5 points are sampled at the same
 // calendar window.
@@ -43,7 +40,7 @@ const NdviTooltip = ({
   payload,
 }: {
   active?: boolean;
-  payload?: Array<{ payload: { date: Date; timestamp: number; ndvi: number; label: string; longLabel: string; axisLabel: string } }>;
+  payload?: Array<{ payload: { date: Date; timestamp: number; ndvi: number; longLabel: string; axisLabel: string } }>;
 }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
@@ -78,7 +75,6 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
         date,
         timestamp: date.getTime(),
         ndvi: point.mean_ndvi,
-        label: formatShortDate(date),
         longLabel: formatLongDate(date),
       };
     });
