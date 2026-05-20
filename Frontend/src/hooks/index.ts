@@ -5,3 +5,4 @@ export * from './map/useFarmMapView';
 export * from './useWeather';
 export * from './useWeatherCalendar';
 export * from './useCropLabNavigation'; // export as useCropLabNavigation
+export * from './useResizablePanel';

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   TrendingUp,
   Cloud,
@@ -14,6 +14,7 @@ import {
   MandiRatesSkeleton,
 } from './PanelSkeletons';
 import { DEFAULT_SIDEBAR, TAB_LIST, TABS, SIDEBAR_PANEL_WIDTH_KEY } from '@/constants';
+import { useResizablePanel } from '@/hooks';
 import type { SidebarTabsProps, TabId } from '@/types';
 
 export const SidebarTabs: React.FC<SidebarTabsProps> = ({
@@ -34,50 +35,13 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabId | null>(TABS.FARM.id);
 
-  const clampWidth = (value: number) =>
-    Math.min(DEFAULT_SIDEBAR.MAX_WIDTH, Math.max(DEFAULT_SIDEBAR.MIN_WIDTH, value));
-
-  const [panelWidth, setPanelWidth] = useState<number>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SIDEBAR.DEFAULT_WIDTH;
-    const saved = window.localStorage.getItem(SIDEBAR_PANEL_WIDTH_KEY);
-    const parsed = saved ? Number.parseInt(saved, 10) : NaN;
-    return Number.isFinite(parsed) ? clampWidth(parsed) : DEFAULT_SIDEBAR.DEFAULT_WIDTH;
-  });
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const container = containerRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      const next = clampWidth(rect.right - event.clientX);
-      setPanelWidth(next);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SIDEBAR_PANEL_WIDTH_KEY, String(panelWidth));
-  }, [panelWidth]);
+  const { panelWidth, isResizing, startResize, resetWidth, containerRef } =
+    useResizablePanel({
+      storageKey: SIDEBAR_PANEL_WIDTH_KEY,
+      minWidth: DEFAULT_SIDEBAR.MIN_WIDTH,
+      maxWidth: DEFAULT_SIDEBAR.MAX_WIDTH,
+      defaultWidth: DEFAULT_SIDEBAR.DEFAULT_WIDTH,
+    });
 
   const handleOpenTrends = () => {
     setActiveTab('trends');
@@ -159,9 +123,9 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
           aria-label='Resize sidebar'
           onMouseDown={event => {
             event.preventDefault();
-            setIsResizing(true);
+            startResize();
           }}
-          onDoubleClick={() => setPanelWidth(DEFAULT_SIDEBAR.DEFAULT_WIDTH)}
+          onDoubleClick={resetWidth}
           title='Drag to resize. Double-click to reset.'
           className={`
             relative w-1 cursor-col-resize bg-neutral-200 hover:bg-primary-400
