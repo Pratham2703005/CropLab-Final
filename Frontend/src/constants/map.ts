@@ -1,7 +1,10 @@
 
 const MAP_API_KEY = import.meta.env.VITE_MAP_API_KEY;
 
-export const DEFAULT_MAP_CENTER: [number, number] = [28.6139, 77.209]; // Agra
+export const DEFAULT_MAP_CENTER = {
+  LAT: import.meta.env.VITE_MAP_DEFAULT_CENTER_LAT,
+  LNG: import.meta.env.VITE_MAP_DEFAULT_CENTER_LNG
+}; // Agra
 export const MAP_STYLES = {
   HYBRID: 'hybrid',
   SATELLITE: 'satellite',

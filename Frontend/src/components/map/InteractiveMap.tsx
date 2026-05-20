@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { DEFAULT_MAP_CENTER } from '@/constants';
 
 // Maximum allowed area in hectares (100 km² = 10,000 hectares)
 const MAX_AREA_HECTARES = parseInt(import.meta.env.VITE_MAX_AREA_HECTARES || "10000");
 // Set Mapbox access token from environment variables
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiZGVtby11c2VyIiwiYSI6ImNsZXhhbXBsZSJ9.example';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 interface InteractiveMapProps {
     onPolygonComplete?: (coordinates: number[][], area: number) => void;
@@ -49,8 +50,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             container: mapContainer.current,
             style: 'mapbox://styles/mapbox/satellite-v9',
             center: [
-                Number(import.meta.env.VITE_MAP_DEFAULT_CENTER_LNG) || 77.2090,
-                Number(import.meta.env.VITE_MAP_DEFAULT_CENTER_LAT) || 28.6139
+                DEFAULT_MAP_CENTER.LNG,
+                DEFAULT_MAP_CENTER.LAT
             ], // Default to Delhi, India
             zoom: 10
         });

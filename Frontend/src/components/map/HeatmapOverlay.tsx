@@ -214,7 +214,7 @@ export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
   // Calculate center of the polygon
   const getPolygonCenter = (): [number, number] => {
     if (leafletCoords.length === 0) {
-      return DEFAULT_MAP_CENTER; // Default center
+      return [DEFAULT_MAP_CENTER.LAT, DEFAULT_MAP_CENTER.LNG]; // Default center
     }
 
     const latSum = leafletCoords.reduce(

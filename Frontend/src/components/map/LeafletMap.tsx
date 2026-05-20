@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import './map.css';
 import { initializeLeafletIcons } from '@/utils/map';
+import { DEFAULT_MAP_CENTER } from '@/constants/map';
 
 // Initialize Leaflet icons on module load
 initializeLeafletIcons();
@@ -284,10 +285,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     streets: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAP_API_KEY}`,
   };
 
-  const defaultCenter: [number, number] = [
-    Number(import.meta.env.VITE_MAP_DEFAULT_CENTER_LAT) || 28.6139,
-    Number(import.meta.env.VITE_MAP_DEFAULT_CENTER_LNG) || 77.2090,
-  ];
+  const defaultCenter: [number, number] = [DEFAULT_MAP_CENTER.LAT, DEFAULT_MAP_CENTER.LNG];
 
   // Live preview rectangle bounds
   const previewRectBounds: [[number, number], [number, number]] | null =
