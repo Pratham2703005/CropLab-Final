@@ -20,21 +20,8 @@ import {
   LineChart as LineChartIcon,
   TrendingUp,
 } from 'lucide-react';
-import type {
-  ChartType,
-  HealthTrend,
-  NDVITrendsPanelProps,
-  NdviChartPoint,
-} from '@/types';
-import {
-  CHART_TYPE,
-  CHIP_STYLES,
-  HEALTH_STYLES,
-  HEALTH_TRENDS,
-  NDVI_PANEL_COPY,
-  PRIORITY_STYLES,
-  TREND_STYLES,
-} from '@/constants';
+import { NdviTooltip } from '@/components/NDVIToolTip';
+
 import {
   buildNdviChartData,
   computeHealthTrend,
@@ -59,27 +46,22 @@ import {
   formatYearSpanArrow,
   formatYearSpanPrefix,
 } from '@/utils/sidebar';
+import {
+  CHART_TYPE,
+  CHIP_STYLES,
+  HEALTH_STYLES,
+  HEALTH_TRENDS,
+  NDVI_PANEL_COPY,
+  PRIORITY_STYLES,
+  TREND_STYLES,
+} from '@/constants';
+import type {
+  ChartType,
+  HealthTrend,
+  NDVITrendsPanelProps,
+} from '@/types';
 
-const NdviTooltip = ({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: NdviChartPoint }>;
-}) => {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload;
-  if (!d) return null;
 
-  return (
-    <div className='bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 shadow-lg text-xs'>
-      <p className='font-semibold text-neutral-700'>{d.longLabel}</p>
-      <p className='text-emerald-700 font-bold'>
-        NDVI: {(d.ndvi as number).toFixed(4)}
-      </p>
-    </div>
-  );
-};
 
 export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
   heatmapData,
