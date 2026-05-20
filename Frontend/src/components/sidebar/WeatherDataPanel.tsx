@@ -19,30 +19,8 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import type { WeatherData } from '@/types/farm';
-
-interface ExtendedWeatherData extends WeatherData {
-  temperature?: number;
-  humidity?: number;
-  wind_speed?: number;
-}
-
-interface AdvisoryItem {
-  title: string;
-  priority: 'High' | 'Medium' | 'Low';
-  reason: string;
-}
-
-interface AlertItem {
-  title: string;
-  message: string;
-}
-
-const PRIORITY_STYLES: Record<AdvisoryItem['priority'], string> = {
-  High: 'bg-red-100 text-red-800 border-red-200',
-  Medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  Low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-};
+import { PRIORITY_STYLES } from '@/constants';
+import type { AdvisoryItem, AlertItem, ExtendedWeatherData, WeatherDataPanelProps } from '@/types';
 
 const formatShortDate = (value: string): string => {
   const date = new Date(`${value}T00:00:00`);
@@ -97,14 +75,6 @@ const WeatherTrendTooltip = ({
     </div>
   );
 };
-
-interface WeatherDataPanelProps {
-  calendarData: WeatherData[];
-  plantingDate?: string;
-  harvestDate?: string;
-  onRefresh: () => void;
-  isLoading?: boolean;
-}
 
 export const WeatherDataPanel: React.FC<WeatherDataPanelProps> = ({
   calendarData,
