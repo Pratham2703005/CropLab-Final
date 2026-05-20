@@ -10,26 +10,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { MandiRatesPanelProps, Unit, MonthNames } from '@/types';
-import { MONTH_NAMES } from '@/constants';
-
-const parsePriceKey = (key: string): readonly [number, number] => {
-  const parts = key.replace('prices_', '').split('_');
-  const year = parseInt(parts[parts.length - 1] ?? '0', 10);
-  const monthIdx = MONTH_NAMES.indexOf(
-    (parts[0] ?? '').toLowerCase() as MonthNames
-  );
-  return [year, monthIdx + 1] as const;
-};
-
-const formatPriceKey = (key: string): string => {
-  const parts = key.replace('prices_', '').split('_');
-  const monthShort = (parts[0] ?? '').slice(0, 3);
-  const monthLabel =
-    monthShort.charAt(0).toUpperCase() + monthShort.slice(1).toLowerCase();
-  const year = parts[parts.length - 1] ?? '';
-  return `${monthLabel} ${year.slice(2)}`;
-};
+import type { MandiRatesPanelProps, Unit } from '@/types';
+import {
+  buildChartData,
+  extractDistricts,
+  resolveInitialDistrict,
+} from '@/utils/mandi';
 
 export const MandiRatesPanel: React.FC<MandiRatesPanelProps> = ({
   agmarknet,
@@ -40,26 +26,16 @@ export const MandiRatesPanel: React.FC<MandiRatesPanelProps> = ({
   const [unit, setUnit] = useState<Unit>('quintal');
   const [districtInitialized, setDistrictInitialized] = useState(false);
 
-  const districts = useMemo(() => {
-    if (!agmarknet?.rows || !Array.isArray(agmarknet.rows)) return [];
-    const set = new Set<string>();
-    agmarknet.rows.forEach(row => {
-      const d = row.district;
-      if (typeof d === 'string' && d.trim()) set.add(d.trim());
-    });
-    return Array.from(set).sort();
-  }, [agmarknet]);
+  const districts = useMemo(
+    () => extractDistricts(agmarknet?.rows),
+    [agmarknet]
+  );
 
   // Initialize selection: prefer the backend-detected district (case-insensitive
   // match against the available list), otherwise the first alphabetically.
   useEffect(() => {
     if (districtInitialized || districts.length === 0 || district) return;
-    let initial: string | undefined;
-    if (detectedDistrict) {
-      const target = detectedDistrict.trim().toLowerCase();
-      initial = districts.find(d => d.toLowerCase() === target);
-    }
-    if (!initial) initial = districts[0];
+    const initial = resolveInitialDistrict(districts, detectedDistrict);
     if (initial) {
       setDistrict(initial);
       setDistrictInitialized(true);
@@ -161,11 +137,9 @@ export const MandiRatesPanel: React.FC<MandiRatesPanelProps> = ({
                 <div className='text-[10px] text-neutral-500'>{unitLabel}</div>
               </div>
               {(() => {
-                const districtData = (
-                  agmarknet!.rows as Array<
-                    Record<string, string | number | null>
-                  >
-                ).find(row => row.district === district);
+                const districtData = agmarknet!.rows.find(
+                  row => row.district === district
+                );
                 if (!districtData) {
                   return (
                     <div className='py-4 text-center text-sm text-neutral-500'>
@@ -173,34 +147,8 @@ export const MandiRatesPanel: React.FC<MandiRatesPanelProps> = ({
                     </div>
                   );
                 }
-                const divisor = unit === 'kg' ? 100 : 1;
                 const stateAvg = agmarknet?.average;
-                const priceKeys = Object.keys(districtData)
-                  .filter(key => key.startsWith('prices_'))
-                  .sort((a, b) => {
-                    const [ay, am] = parsePriceKey(a);
-                    const [by, bm] = parsePriceKey(b);
-                    return ay - by || am - bm;
-                  });
-
-                const chartData = priceKeys
-                  .map(key => {
-                    const districtPrice = districtData[key];
-                    const avgPrice = stateAvg?.[key];
-                    return {
-                      month: formatPriceKey(key),
-                      key,
-                      district:
-                        typeof districtPrice === 'number'
-                          ? +(districtPrice / divisor).toFixed(2)
-                          : null,
-                      stateAverage:
-                        typeof avgPrice === 'number'
-                          ? +(avgPrice / divisor).toFixed(2)
-                          : null,
-                    };
-                  })
-                  .filter(d => d.district !== null);
+                const chartData = buildChartData(districtData, stateAvg, unit);
 
                 if (chartData.length === 0) {
                   return (
