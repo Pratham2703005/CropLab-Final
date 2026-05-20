@@ -97,3 +97,12 @@ export interface HealthTag {
   label: string;
   style: string;
 }
+
+// --- News panel ---
+
+export interface PaginationResult<T> {
+  items: T[];
+  currentPage: number;
+  totalPages: number;
+  start: number;
+}

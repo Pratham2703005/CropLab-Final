@@ -199,3 +199,21 @@ export const NDVI_PANEL_COPY = {
   insufficientTrendInsight:
     'Not enough yearly NDVI points yet for a reliable signal.',
 } as const;
+
+// --- News panel copy ---
+
+/** How many news items fit on one page of the news list. */
+export const NEWS_PAGE_SIZE = 10;
+
+export const NEWS_PANEL_COPY = {
+  noNewsAvailable: 'No news available',
+  aiAnalysisLabel: 'AI News Analysis',
+  searchPlaceholder: 'Search by title or source…',
+  resultCount: (n: number) => `${n} result${n === 1 ? '' : 's'}`,
+  resultsForQuery: (q: string) => `for "${q}"`,
+  noMatches: 'No news matches your search.',
+  pageLabel: 'Page',
+  pageOf: (total: number) => `of ${total}`,
+  prevButton: 'Prev',
+  nextButton: 'Next',
+} as const;

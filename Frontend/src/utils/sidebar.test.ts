@@ -25,7 +25,11 @@ import {
   deriveHealthColor,
   formatYearSpanArrow,
   formatYearSpanPrefix,
+  formatNewsDate,
+  filterNews,
+  paginate,
 } from './sidebar';
+import type { NewsItem } from '@/types/farm';
 import type {
   HealthLabel,
   HealthTrend,
@@ -1076,6 +1080,135 @@ describe('sidebar', () => {
       },
     ])('$name', ({ data, expected }) => {
       expect(formatYearSpanPrefix(data)).toBe(expected);
+    });
+  });
+
+  describe('formatNewsDate', () => {
+    it('formats a valid ISO string as a localized short date', () => {
+      expect(formatNewsDate('2025-01-15')).toMatch(/Jan.*15.*2025/);
+    });
+
+    it('formats different months correctly', () => {
+      expect(formatNewsDate('2024-12-31')).toMatch(/Dec.*31.*2024/);
+    });
+
+    it('returns a string for unparseable input (does not throw)', () => {
+      // Modern engines yield "Invalid Date" from toLocaleDateString rather
+      // than throwing; we only care that the function returns a string.
+      expect(typeof formatNewsDate('not-a-date')).toBe('string');
+    });
+  });
+
+  describe('filterNews', () => {
+    const mkNews = (title: string, source: string): NewsItem => ({
+      title,
+      description: null,
+      url: `https://example.com/${title}`,
+      urlToImage: null,
+      publishedAt: '2025-01-01',
+      source,
+    });
+
+    const sample: NewsItem[] = [
+      mkNews('Wheat prices climb in Punjab', 'AgriToday'),
+      mkNews('Monsoon arrives early', 'WeatherWire'),
+      mkNews('Government announces MSP hike', 'AgriToday'),
+    ];
+
+    it('returns the input unchanged for an empty query', () => {
+      expect(filterNews(sample, '')).toBe(sample);
+    });
+
+    it('returns the input unchanged for a whitespace-only query', () => {
+      expect(filterNews(sample, '   ')).toBe(sample);
+    });
+
+    it('matches against the title (case insensitive)', () => {
+      const result = filterNews(sample, 'wheat');
+      expect(result).toHaveLength(1);
+      expect(result[0]?.title).toMatch(/Wheat/);
+    });
+
+    it('matches against the source (case insensitive)', () => {
+      const result = filterNews(sample, 'agritoday');
+      expect(result).toHaveLength(2);
+    });
+
+    it('returns an empty array when nothing matches', () => {
+      expect(filterNews(sample, 'tractor')).toEqual([]);
+    });
+
+    it('supports partial substring matches', () => {
+      const result = filterNews(sample, 'mon');
+      expect(result.map(n => n.title)).toContain('Monsoon arrives early');
+    });
+  });
+
+  describe('paginate', () => {
+    it('returns one empty page for empty input', () => {
+      const result = paginate<number>([], 1, 10);
+      expect(result.items).toEqual([]);
+      expect(result.totalPages).toBe(1);
+      expect(result.currentPage).toBe(1);
+      expect(result.start).toBe(0);
+    });
+
+    it('returns all items when the list fits on a single page', () => {
+      const result = paginate([1, 2, 3], 1, 10);
+      expect(result.items).toEqual([1, 2, 3]);
+      expect(result.totalPages).toBe(1);
+      expect(result.currentPage).toBe(1);
+    });
+
+    it.each<{
+      name: string;
+      page: number;
+      expected: number[];
+      currentPage: number;
+      start: number;
+    }>([
+      {
+        name: 'first page',
+        page: 1,
+        expected: [1, 2],
+        currentPage: 1,
+        start: 0,
+      },
+      {
+        name: 'middle page',
+        page: 2,
+        expected: [3, 4],
+        currentPage: 2,
+        start: 2,
+      },
+      {
+        name: 'last page (partial)',
+        page: 3,
+        expected: [5],
+        currentPage: 3,
+        start: 4,
+      },
+    ])(
+      'slices the $name correctly with pageSize=2',
+      ({ page, expected, currentPage, start }) => {
+        const result = paginate([1, 2, 3, 4, 5], page, 2);
+        expect(result.items).toEqual(expected);
+        expect(result.currentPage).toBe(currentPage);
+        expect(result.start).toBe(start);
+        expect(result.totalPages).toBe(3);
+      }
+    );
+
+    it('clamps a page above totalPages down to the last page', () => {
+      const result = paginate([1, 2, 3, 4, 5], 999, 2);
+      expect(result.currentPage).toBe(3);
+      expect(result.items).toEqual([5]);
+    });
+
+    it('clamps a page below 1 up to the first page', () => {
+      const result = paginate([1, 2, 3, 4, 5], 0, 2);
+      expect(result.currentPage).toBe(1);
+      expect(result.items).toEqual([1, 2]);
     });
   });
 

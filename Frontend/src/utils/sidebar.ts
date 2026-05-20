@@ -16,7 +16,8 @@ import type {
   TopIssue,
 } from '@/types/sidebar';
 import type { MaskOverlay } from '@/types/map';
-import type { HeatmapData } from '@/types/farm';
+import type { HeatmapData, NewsItem } from '@/types/farm';
+import type { PaginationResult } from '@/types/sidebar';
 import {
   HEALTH_TRENDS,
   NDVI_ACTIONS,
@@ -556,5 +557,55 @@ export const formatYearSpanPrefix = (chartData: NdviChartPoint[]): string => {
     return NDVI_PANEL_COPY.fromYearToYear(from, to);
   }
   return NDVI_PANEL_COPY.acrossAvailableYears;
+};
+
+// --- News panel ---
+
+/**
+ * Formats an ISO date string as a localized short date (e.g. `'Jan 15, 2025'`).
+ * Falls back to the raw input if `Date` parsing throws.
+ */
+export const formatNewsDate = (iso: string): string => {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+};
+
+/**
+ * Filters news items by case-insensitive substring match against `title` or
+ * `source`. An empty or whitespace-only query returns the input unchanged.
+ */
+export const filterNews = (news: NewsItem[], query: string): NewsItem[] => {
+  const q = query.trim().toLowerCase();
+  if (!q) return news;
+  return news.filter(
+    n => n.title.toLowerCase().includes(q) || n.source.toLowerCase().includes(q)
+  );
+};
+
+/**
+ * Slices `items` into a single page. Clamps `page` into the valid 1..totalPages
+ * range; `totalPages` is at least 1 even for an empty input list.
+ */
+export const paginate = <T>(
+  items: T[],
+  page: number,
+  pageSize: number
+): PaginationResult<T> => {
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    currentPage,
+    totalPages,
+    start,
+  };
 };
 
