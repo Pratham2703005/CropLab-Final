@@ -6,9 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import type { NewsItem } from '@/types/farm';
-import { NEWS_PAGE_SIZE, NEWS_PANEL_COPY } from '@/constants/sidebar';
-import { filterNews, formatNewsDate, paginate } from '@/utils/sidebar';
+import { filterNews, formatNewsDate, paginate } from '@/utils';
+import { NEWS_PAGE_SIZE, NEWS_PANEL_COPY } from '@/constants';
+import type { NewsItem } from '@/types';
 
 interface NewsPanelProps {
   news: NewsItem[];
