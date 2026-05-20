@@ -4,16 +4,8 @@
  * component) so React Fast Refresh works — a file must export only
  * components for Fast Refresh, so the hook/context live here.
  */
+import type { ServerStatus } from '@/types';
 import { createContext, useContext } from 'react';
-
-export type ServerStatus =
-  | 'checking' // first poll in flight, no result yet
-  | 'waking' // polls failing — server asleep / cold-starting
-  | 'ready' // /health returned healthy
-  | 'degraded' // /health returned unhealthy (server up, GEE down)
-  | 'error' // 3-minute deadline passed without reaching the server
-  | 'stopped'; // polling manually stopped by the user
-
 export interface ServerStatusValue {
   status: ServerStatus;
   isReady: boolean;

@@ -1,32 +1,10 @@
-import type { Farm } from "@/types"
+import type { Farm, LockVariant } from "@/types"
 import { formatHectares } from "@/utils"
 import { Link } from "react-router-dom"
-import { Plus, Moon, Lock, Pause } from "lucide-react"
+import { Plus } from "lucide-react"
 import cropData from "@/assets/dashboard-crops.json"
 import { useServerStatus } from "@/contexts/serverStatus"
-
-type LockVariant = 'waking' | 'paused' | 'offline';
-
-const LOCK_PILL: Record<
-  LockVariant,
-  { label: string; classes: string; Icon: typeof Moon }
-> = {
-  waking: {
-    label: 'Waking…',
-    classes: 'bg-amber-100 text-amber-700',
-    Icon: Moon,
-  },
-  paused: {
-    label: 'Paused',
-    classes: 'bg-slate-100 text-slate-600',
-    Icon: Pause,
-  },
-  offline: {
-    label: 'Offline',
-    classes: 'bg-red-100 text-red-700',
-    Icon: Lock,
-  },
-};
+import { LOCK_PILL, LOCK_VARIANT, SERVER_STATUS } from "@/constants"
 
 const CardBody = ({
   farm,
@@ -117,15 +95,15 @@ export const Card = ({
 
   if (locked) {
     const lockVariant: LockVariant =
-      status === 'error'
-        ? 'offline'
-        : status === 'stopped'
-          ? 'paused'
-          : 'waking';
+    status === SERVER_STATUS.ERROR
+        ? LOCK_VARIANT.OFFLINE
+        : status === SERVER_STATUS.STOPPED
+          ? LOCK_VARIANT.PAUSED
+          : LOCK_VARIANT.WAKING;
     const title = {
-      offline: 'Backend is offline — this farm needs the server',
-      paused: 'Health polling is stopped — resume it to open this farm',
-      waking: 'Waking up the server — this farm will unlock shortly',
+      offline: 'Backend is offline - this farm needs the server',
+      paused: 'Health polling is stopped - resume it to open this farm',
+      waking: 'Waking up the server - this farm will unlock shortly',
     }[lockVariant];
     return (
       <div
