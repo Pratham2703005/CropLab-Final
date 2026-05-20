@@ -1,6 +1,7 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import JSZip from 'jszip';
+// jspdf, html2canvas, and jszip are loaded via dynamic `import()` inside the
+// functions that need them — they only run when the user explicitly exports,
+// and they're heavy enough (~1MB combined) that we don't want them in the
+// initial bundle. Vite splits each one into its own chunk.
 import type { Farm, HeatmapData } from '@/types/farm';
 
 /**
@@ -151,6 +152,7 @@ export const generatePDFReport = async (farm: Farm | null, heatmapData: HeatmapD
   const timestamp = getTimestampSuffix();
   const filename = `${farm.name.replace(/\s+/g, '_')}_report_${timestamp}.pdf`;
 
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   let yPosition = 20;
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -319,6 +321,7 @@ export const downloadMapImage = async (mapContainerRef: HTMLElement | null): Pro
     const timestamp = getTimestampSuffix();
     const filename = `farm_map_${timestamp}.png`;
 
+    const { default: html2canvas } = await import('html2canvas');
     // Capture the map canvas
     const canvas = await html2canvas(mapContainerRef, {
       backgroundColor: '#ffffff',
@@ -351,6 +354,7 @@ export const createMapImagesZip = async (
     const timestamp = getTimestampSuffix();
     const zipFilename = `${farmName.replace(/\s+/g, '_')}_maps_${timestamp}.zip`;
 
+    const { default: JSZip } = await import('jszip');
     const zip = new JSZip();
     const folder = zip.folder('farm_maps');
 
@@ -468,6 +472,7 @@ export const captureElementAsBlob = async (element: HTMLElement | null): Promise
   if (!element) return null;
 
   try {
+    const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
       scale: 2,
