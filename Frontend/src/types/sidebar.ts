@@ -1,5 +1,7 @@
 import { CHART_TYPE, CHIP_LABELS, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY_LABELS } from '@/constants/sidebar';
+import type { WeatherCalendarData } from '@/hooks/useWeatherCalendar';
 import type { AgmarknetData, Farm, HeatmapData, MaskOverlay } from '@/types';
+import type { LucideIcon } from 'lucide-react';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
 
@@ -106,3 +108,31 @@ export interface PaginationResult<T> {
   totalPages: number;
   start: number;
 }
+
+export type TabId = 'farm' | 'trends' | 'weather' | 'news' | 'mandi' | 'export';
+
+export interface Tab {
+  id: TabId;
+  label: string;
+  Icon: LucideIcon;
+  activeColor: string;
+  activeBg: string;
+}
+
+export interface SidebarTabsProps {
+  farm: Farm;
+  heatmapData?: HeatmapData | null;
+  heatmapLoading?: boolean;
+  weatherCalendarData?: WeatherCalendarData | null;
+  canEdit: boolean;
+  onDelete: () => void;
+  onRefreshWeather: () => void;
+  onExportData?: () => void;
+  onGenerateReport?: () => void;
+  onDownloadMap?: () => void;
+  weatherLoading?: boolean;
+  exportLoading?: boolean;
+  onViewFarmOnMap?: () => void;
+  onViewStressMap?: () => void;
+}
+

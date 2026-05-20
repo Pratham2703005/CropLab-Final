@@ -1,106 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Home,
   TrendingUp,
   Cloud,
-  Download,
-  Newspaper,
-  Store,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
-import type { Farm, HeatmapData } from '@/types/farm';
-import type { WeatherCalendarData } from '@/hooks/useWeatherCalendar';
-import { FarmOverviewPanel } from './FarmInfoPanel';
-import { NDVITrendsPanel } from './NDVITrendsPanel';
+import { FarmOverviewPanel, NDVITrendsPanel, ExportMapsPanel, NewsPanel, MandiRatesPanel } from '@/components/sidebar';
 import { FarmWeatherCalendar } from '../FarmWeatherCalendar';
-import { ExportMapsPanel } from './ExportMapsPanel';
-import { NewsPanel } from './NewsPanel';
-import { MandiRatesPanel } from './MandiRatesPanel';
 import {
   FarmOverviewSkeleton,
   NDVITrendsSkeleton,
   NewsSkeleton,
   MandiRatesSkeleton,
 } from './PanelSkeletons';
-
-type TabId =
-  | 'farm'
-  | 'trends'
-  | 'weather'
-  | 'news'
-  | 'mandi'
-  | 'export';
-
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: React.ReactNode;
-  activeColor: string;
-  activeBg: string;
-}
-
-interface SidebarTabsProps {
-  farm: Farm;
-  heatmapData?: HeatmapData | null;
-  heatmapLoading?: boolean;
-  weatherCalendarData?: WeatherCalendarData | null;
-  canEdit: boolean;
-  onDelete: () => void;
-  onRefreshWeather: () => void;
-  onExportData?: () => void;
-  onGenerateReport?: () => void;
-  onDownloadMap?: () => void;
-  weatherLoading?: boolean;
-  exportLoading?: boolean;
-  onViewFarmOnMap?: () => void;
-  onViewStressMap?: () => void;
-}
-
-const TABS: Tab[] = [
-  {
-    id: 'farm',
-    label: 'Overview',
-    icon: <Home className='h-5 w-5' />,
-    activeColor: 'text-primary-600',
-    activeBg: 'bg-primary-50',
-  },
-  {
-    id: 'trends',
-    label: 'NDVI Trends',
-    icon: <TrendingUp className='h-5 w-5' />,
-    activeColor: 'text-emerald-600',
-    activeBg: 'bg-emerald-50',
-  },
-  {
-    id: 'weather',
-    label: 'Weather',
-    icon: <Cloud className='h-5 w-5' />,
-    activeColor: 'text-sky-600',
-    activeBg: 'bg-sky-50',
-  },
-  {
-    id: 'news',
-    label: 'News',
-    icon: <Newspaper className='h-5 w-5' />,
-    activeColor: 'text-orange-600',
-    activeBg: 'bg-orange-50',
-  },
-  {
-    id: 'mandi',
-    label: 'Mandi Rates',
-    icon: <Store className='h-5 w-5' />,
-    activeColor: 'text-rose-600',
-    activeBg: 'bg-rose-50',
-  },
-  {
-    id: 'export',
-    label: 'Export',
-    icon: <Download className='h-5 w-5' />,
-    activeColor: 'text-amber-600',
-    activeBg: 'bg-amber-50',
-  },
-];
+import { DEFAULT_SIDEBAR, TAB_LIST, TABS, SIDEBAR_PANEL_WIDTH_KEY } from '@/constants';
+import type { SidebarTabsProps, TabId } from '@/types';
 
 export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   farm,
@@ -118,21 +32,16 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   onViewFarmOnMap,
   onViewStressMap,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabId | null>('farm');
-
-  const MIN_WIDTH = 280;
-  const MAX_WIDTH = 640;
-  const STORAGE_KEY = 'sidebarTabs.panelWidth';
-  const DEFAULT_WIDTH = 310;
+  const [activeTab, setActiveTab] = useState<TabId | null>(TABS.FARM.id);
 
   const clampWidth = (value: number) =>
-    Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, value));
+    Math.min(DEFAULT_SIDEBAR.MAX_WIDTH, Math.max(DEFAULT_SIDEBAR.MIN_WIDTH, value));
 
   const [panelWidth, setPanelWidth] = useState<number>(() => {
-    if (typeof window === 'undefined') return DEFAULT_WIDTH;
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (typeof window === 'undefined') return DEFAULT_SIDEBAR.DEFAULT_WIDTH;
+    const saved = window.localStorage.getItem(SIDEBAR_PANEL_WIDTH_KEY);
     const parsed = saved ? Number.parseInt(saved, 10) : NaN;
-    return Number.isFinite(parsed) ? clampWidth(parsed) : DEFAULT_WIDTH;
+    return Number.isFinite(parsed) ? clampWidth(parsed) : DEFAULT_SIDEBAR.DEFAULT_WIDTH;
   });
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,7 +76,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_KEY, String(panelWidth));
+    window.localStorage.setItem(SIDEBAR_PANEL_WIDTH_KEY, String(panelWidth));
   }, [panelWidth]);
 
   const handleOpenTrends = () => {
@@ -189,12 +98,14 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   };
 
   const isOpen = activeTab !== null;
+  const activeTabData = TAB_LIST.find(t => t.id === activeTab);
+  const ActiveTabIcon = activeTabData?.Icon;
 
   return (
     <div className='flex h-full' ref={containerRef}>
       {/* Vertical Icon Strip */}
       <div className='flex flex-col items-center bg-white py-3 px-1.5 space-y-1 z-10'>
-        {TABS.map(tab => {
+        {TAB_LIST.map(tab => {
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -210,7 +121,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
                 }
               `}
             >
-              {tab.icon}
+              <tab.Icon className='h-5 w-5' />
               {/* Active indicator dot */}
               {isActive && (
                 <span className='absolute right-0.5 top-0.5 w-1.5 h-1.5 rounded-full bg-current' />
@@ -250,7 +161,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
             event.preventDefault();
             setIsResizing(true);
           }}
-          onDoubleClick={() => setPanelWidth(DEFAULT_WIDTH)}
+          onDoubleClick={() => setPanelWidth(DEFAULT_SIDEBAR.DEFAULT_WIDTH)}
           title='Drag to resize. Double-click to reset.'
           className={`
             relative w-1 cursor-col-resize bg-neutral-200 hover:bg-primary-400
@@ -283,9 +194,9 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
           {activeTab && (
             <div className='px-4 py-3 border-b border-neutral-200 bg-neutral-50 flex-shrink-0'>
               <div className='flex items-center space-x-2'>
-                {TABS.find(t => t.id === activeTab)?.icon}
+                {ActiveTabIcon && <ActiveTabIcon className='h-5 w-5' />}
                 <h3 className='text-sm font-bold text-neutral-900'>
-                  {TABS.find(t => t.id === activeTab)?.label}
+                  {activeTabData?.label}
                 </h3>
               </div>
             </div>

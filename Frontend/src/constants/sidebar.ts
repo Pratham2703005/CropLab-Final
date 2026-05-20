@@ -1,3 +1,13 @@
+import type { Tab } from '@/types';
+import {
+  Home,
+  TrendingUp,
+  Cloud,
+  Download,
+  Newspaper,
+  Store,
+} from 'lucide-react';
+
 export const HEALTH_STYLES = {
   Excellent: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   Good: 'bg-lime-100 text-lime-800 border-lime-200',
@@ -217,3 +227,62 @@ export const NEWS_PANEL_COPY = {
   prevButton: 'Prev',
   nextButton: 'Next',
 } as const;
+
+/**
+ * Sidebar tabs keyed by stable enum-style names so callers can reference a
+ * specific tab directly (e.g. `TABS.FARM`) without an array index or `.find`.
+ * For iteration (the icon strip, tab lookups by id), use `TAB_LIST` below —
+ * `Object.values(TABS)` preserves the declaration order in modern engines.
+ */
+export const TABS = {
+  FARM: {
+    id: 'farm',
+    label: 'Overview',
+    Icon: Home,
+    activeColor: 'text-primary-600',
+    activeBg: 'bg-primary-50',
+  },
+  TRENDS: {
+    id: 'trends',
+    label: 'NDVI Trends',
+    Icon: TrendingUp,
+    activeColor: 'text-emerald-600',
+    activeBg: 'bg-emerald-50',
+  },
+  WEATHER: {
+    id: 'weather',
+    label: 'Weather',
+    Icon: Cloud,
+    activeColor: 'text-sky-600',
+    activeBg: 'bg-sky-50',
+  },
+  NEWS: {
+    id: 'news',
+    label: 'News',
+    Icon: Newspaper,
+    activeColor: 'text-orange-600',
+    activeBg: 'bg-orange-50',
+  },
+  MANDI: {
+    id: 'mandi',
+    label: 'Mandi Rates',
+    Icon: Store,
+    activeColor: 'text-rose-600',
+    activeBg: 'bg-rose-50',
+  },
+  EXPORT: {
+    id: 'export',
+    label: 'Export',
+    Icon: Download,
+    activeColor: 'text-amber-600',
+    activeBg: 'bg-amber-50',
+  },
+} as const satisfies Record<string, Tab>;
+
+export const TAB_LIST: readonly Tab[] = Object.values(TABS);
+
+export const DEFAULT_SIDEBAR = {
+  MIN_WIDTH: 280,
+  MAX_WIDTH: 640,
+  DEFAULT_WIDTH: 350,
+}
