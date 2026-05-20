@@ -1,26 +1,6 @@
+import type { DayAvailability, DayWeather, WeatherCalendarData } from '@/types/weather';
 import { useState, useCallback } from 'react';
 
-export type DayAvailability = 'historical' | 'forecast' | 'unavailable';
-
-export interface DayWeather {
-  date: string; // "YYYY-MM-DD"
-  weatherCode: number;
-  tempMax: number;
-  tempMin: number;
-  precipitationSum: number;
-  precipitationProbability: number | null; // null for historical (not provided by archive API)
-  windSpeedMax: number;
-  uvIndexMax: number;
-  availability: DayAvailability;
-}
-
-export interface WeatherCalendarData {
-  days: Record<string, DayWeather>; // keyed by "YYYY-MM-DD"
-  plantingDate: string;
-  harvestDate: string;
-  latitude: number;
-  longitude: number;
-}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

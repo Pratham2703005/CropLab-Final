@@ -49,10 +49,16 @@ export const CHIP_STYLES = {
   sky: 'bg-sky-100 text-sky-800 border-sky-200',
 } as const;
 
+export const PRIORITY = {
+  HIGH: 'High',
+  MEDIUM: 'Medium',
+  LOW: 'Low',
+} as const;
+
 export const PRIORITY_STYLES = {
-  High: 'bg-red-100 text-red-800 border-red-200',
-  Medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  Low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  [PRIORITY.HIGH]: 'bg-red-100 text-red-800 border-red-200',
+  [PRIORITY.MEDIUM]: 'bg-amber-100 text-amber-800 border-amber-200',
+  [PRIORITY.LOW]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 } as const;
 
 export const CHART_TYPE = {

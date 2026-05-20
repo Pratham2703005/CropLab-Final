@@ -1,6 +1,5 @@
-import { CHART_TYPE, CHIP_LABELS, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY_LABELS } from '@/constants/sidebar';
-import type { WeatherCalendarData } from '@/hooks/useWeatherCalendar';
-import type { AgmarknetData, Farm, HeatmapData, MaskOverlay } from '@/types';
+import { CHART_TYPE, CHIP_LABELS, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY, PRIORITY_LABELS } from '@/constants/sidebar';
+import type { AgmarknetData, Farm, HeatmapData, MaskOverlay, WeatherCalendarData } from '@/types';
 import type { LucideIcon } from 'lucide-react';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
@@ -136,3 +135,4 @@ export interface SidebarTabsProps {
   onViewStressMap?: () => void;
 }
 
+export type Priority = typeof PRIORITY[keyof typeof PRIORITY];

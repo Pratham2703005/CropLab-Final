@@ -6,7 +6,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { FarmOverviewPanel, NDVITrendsPanel, ExportMapsPanel, NewsPanel, MandiRatesPanel } from '@/components/sidebar';
-import { FarmWeatherCalendar } from '../FarmWeatherCalendar';
+import { FarmWeatherCalendar } from '@/components/weather/FarmWeatherCalender';
 import {
   FarmOverviewSkeleton,
   NDVITrendsSkeleton,

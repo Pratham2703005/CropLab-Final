@@ -5,3 +5,4 @@ export * from './common';
 export * from './sidebar';
 export * from './format';
 export * from './date';
+export * from './weather';
