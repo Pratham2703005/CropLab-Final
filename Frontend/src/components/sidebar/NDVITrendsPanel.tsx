@@ -20,39 +20,8 @@ import {
   LineChart as LineChartIcon,
   TrendingUp,
 } from 'lucide-react';
-import type { HeatmapData } from '@/types/farm';
-
-interface NDVITrendsPanelProps {
-  heatmapData: HeatmapData;
-  onViewStressMap?: () => void;
-}
-
-const TREND_STYLES = {
-  improving: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  stable: 'bg-amber-100 text-amber-800 border-amber-200',
-  declining: 'bg-red-100 text-red-800 border-red-200',
-};
-
-const CHIP_STYLES = {
-  emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  amber: 'bg-amber-100 text-amber-800 border-amber-200',
-  red: 'bg-red-100 text-red-800 border-red-200',
-  sky: 'bg-sky-100 text-sky-800 border-sky-200',
-};
-
-const PRIORITY_STYLES = {
-  High: 'bg-red-100 text-red-800 border-red-200',
-  Medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  Low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-};
-
-const HEALTH_STYLES: Record<string, string> = {
-  Excellent: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  Good: 'bg-lime-100 text-lime-800 border-lime-200',
-  Moderate: 'bg-amber-100 text-amber-800 border-amber-200',
-  Poor: 'bg-orange-100 text-orange-800 border-orange-200',
-  Critical: 'bg-red-100 text-red-800 border-red-200',
-};
+import type { ChartType, ChipLabel, HealthTrend, NDVITrendsPanelProps, PriorityLabel } from '@/types';
+import { CHART_TYPE, CHIP_LABELS, CHIP_STYLES, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY_LABELS, PRIORITY_STYLES, TREND_STYLES } from '@/constants';
 
 const formatShortDate = (date: Date): string =>
   date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
@@ -94,7 +63,7 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
   heatmapData,
   onViewStressMap,
 }) => {
-  const [chartType, setChartType] = React.useState<'line' | 'bar'>('line');
+  const [chartType, setChartType] = React.useState<ChartType>(CHART_TYPE.LINE);
   const [showMoreInfo, setShowMoreInfo] = React.useState(false);
 
   // Backend returns up to 5 yearly NDVI points - same calendar date as the
@@ -132,22 +101,22 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
       : 0;
   const yearsSpanned = priorPoints.length;
 
-  const trendKey: 'improving' | 'stable' | 'declining' =
-    Math.abs(changePct) < 3 ? 'stable' : changePct > 0 ? 'improving' : 'declining';
+  const trendKey: HealthTrend =
+    Math.abs(changePct) < 3 ? HEALTH_TRENDS.STABLE : changePct > 0 ? HEALTH_TRENDS.IMPROVING : HEALTH_TRENDS.DECLINING;
 
   const trendLabel =
-    trendKey === 'improving'
+    trendKey === HEALTH_TRENDS.IMPROVING
       ? 'Improving'
-      : trendKey === 'declining'
+      : trendKey === HEALTH_TRENDS.DECLINING
         ? 'Declining'
         : 'Stable';
 
   const trendInsight =
     chartData.length < 2
       ? 'Not enough yearly NDVI points yet for a reliable signal.'
-      : trendKey === 'declining'
+      : trendKey === HEALTH_TRENDS.DECLINING
         ? 'NDVI for this calendar window has fallen across the past few seasons.'
-        : trendKey === 'improving'
+        : trendKey === HEALTH_TRENDS.IMPROVING
           ? 'NDVI for this calendar window has been climbing year-over-year.'
           : 'NDVI for this calendar window has held roughly steady year-over-year.';
 
@@ -184,19 +153,19 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
   const topIssue: {
     name: string;
     affected_area_pct: number;
-    priority: 'High' | 'Medium' | 'Low';
+    priority: PriorityLabel;
   } | null =
     stressedPercent >= 5
       ? {
           name: 'Stressed area',
           affected_area_pct: stressedPercent,
-          priority: stressedPercent >= 35 ? 'High' : 'Medium',
+          priority: stressedPercent >= 35 ? PRIORITY_LABELS.HIGH : PRIORITY_LABELS.MEDIUM,
         }
       : moderatePercent >= 20
         ? {
             name: 'Moderate-health area',
             affected_area_pct: moderatePercent,
-            priority: 'Medium',
+            priority: PRIORITY_LABELS.MEDIUM,
           }
         : null;
   const keyIssueText = topIssue
@@ -262,11 +231,11 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
   const latestYear = latestPoint ? latestPoint.date.getFullYear() : null;
 
   const impactText =
-    trendKey === 'declining' && stressedPercent >= 40
+    trendKey === HEALTH_TRENDS.DECLINING && stressedPercent >= 40
       ? 'Stress is widespread; targeted scouting and irrigation review can stop further spread.'
-      : trendKey === 'declining'
+      : trendKey === HEALTH_TRENDS.DECLINING
         ? 'Decline detected; check water distribution and nutrient uptake in weaker zones.'
-        : trendKey === 'improving'
+        : trendKey === HEALTH_TRENDS.IMPROVING
           ? 'Recovery underway; stable irrigation can preserve this momentum.'
           : 'Stable health now; targeted scouting can prevent sudden stress spread.';
 
@@ -291,8 +260,8 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
           : cropHealthScore > 10
             ? 'Poor'
             : 'Critical';
-  const derivedPriority: 'High' | 'Medium' | 'Low' =
-    cropHealthScore <= 35 ? 'High' : cropHealthScore <= 65 ? 'Medium' : 'Low';
+  const derivedPriority: PriorityLabel =
+    cropHealthScore <= 35 ? PRIORITY_LABELS.HIGH : cropHealthScore <= 65 ? PRIORITY_LABELS.MEDIUM : PRIORITY_LABELS.LOW;
   const aiHealth = derivedHealth;
   const aiPriority = derivedPriority;
   const healthColor =
@@ -302,59 +271,59 @@ export const NDVITrendsPanel: React.FC<NDVITrendsPanelProps> = ({
         ? 'bg-amber-500'
         : 'bg-red-500';
   const healthLabel =
-    cropHealthScore >= 70 ? 'High' : cropHealthScore >= 40 ? 'Medium' : 'Low';
+    cropHealthScore >= 70 ? PRIORITY_LABELS.HIGH : cropHealthScore >= 40 ? PRIORITY_LABELS.MEDIUM : PRIORITY_LABELS.LOW;
 
   const hasHighStress = stressedPercent >= 35;
   const actionItems: Array<{
     title: string;
-    priority: 'High' | 'Medium' | 'Low';
+    priority: PriorityLabel;
     urgency: string;
   }> = [
     {
       title:
-        trendKey === 'declining' || hasHighStress
+        trendKey === HEALTH_TRENDS.DECLINING || hasHighStress
           ? 'Irrigation Required'
           : 'Irrigation Uniformity Check',
-      priority: trendKey === 'declining' || hasHighStress ? 'High' : 'Medium',
+      priority: trendKey === HEALTH_TRENDS.DECLINING || hasHighStress ? PRIORITY_LABELS.HIGH : PRIORITY_LABELS.MEDIUM,
       urgency:
-        trendKey === 'declining' || hasHighStress
+        trendKey === HEALTH_TRENDS.DECLINING || hasHighStress
           ? 'Do within 24-48h'
           : 'Do within 3-5 days',
     },
     {
       title: topIssue ? `${topIssue.name} Control` : 'Nitrogen Boost',
       priority:
-        topIssue?.priority ?? (trendKey === 'declining' ? 'Medium' : 'Low'),
-      urgency: topIssue?.priority === 'High' ? 'Immediate' : 'Within 3-5 days',
+        topIssue?.priority ?? (trendKey === HEALTH_TRENDS.DECLINING ? PRIORITY_LABELS.MEDIUM : PRIORITY_LABELS.LOW),
+      urgency: topIssue?.priority === PRIORITY_LABELS.HIGH ? 'Immediate' : 'Within 3-5 days',
     },
     {
       title: hasHighStress ? 'Inspect Stress Zones' : 'Targeted Field Scouting',
-      priority: hasHighStress ? 'High' : 'Medium',
+      priority: hasHighStress ? PRIORITY_LABELS.HIGH : PRIORITY_LABELS.MEDIUM,
       urgency: hasHighStress ? 'Immediate' : 'Within 48h',
     },
   ];
 
   const insightChips: Array<{
     label: string;
-    tone: 'emerald' | 'amber' | 'red' | 'sky';
+    tone: ChipLabel;
   }> = [];
 
-  if (trendKey === 'improving') {
-    insightChips.push({ label: 'Stable Growth', tone: 'emerald' });
+  if (trendKey === HEALTH_TRENDS.IMPROVING) {
+    insightChips.push({ label: 'Stable Growth', tone: CHIP_LABELS.EMERALD });
   }
   if (sharpestDrop && sharpestDrop.delta <= -0.03) {
-    insightChips.push({ label: 'Sudden Drop Detected', tone: 'red' });
+    insightChips.push({ label: 'Sudden Drop Detected', tone: CHIP_LABELS.RED });
   }
   if (strongestRecovery && strongestRecovery.delta >= 0.03) {
-    insightChips.push({ label: 'Recovery Signal', tone: 'sky' });
+    insightChips.push({ label: 'Recovery Signal', tone: CHIP_LABELS.SKY });
   }
   if (volatility >= 0.04) {
-    insightChips.push({ label: 'High Variability', tone: 'amber' });
+    insightChips.push({ label: 'High Variability', tone: CHIP_LABELS.AMBER });
   } else if (volatility > 0 && volatility < 0.02) {
-    insightChips.push({ label: 'Consistent Canopy', tone: 'emerald' });
+    insightChips.push({ label: 'Consistent Canopy', tone: CHIP_LABELS.EMERALD });
   }
   if (insightChips.length === 0) {
-    insightChips.push({ label: 'Steady Pattern', tone: 'amber' });
+    insightChips.push({ label: 'Steady Pattern', tone: CHIP_LABELS.AMBER });
   }
 
   const hasAnomalyMap = Boolean(

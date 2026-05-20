@@ -1,4 +1,4 @@
-import { HEALTH_STYLES, HEALTH_TRENDS } from '@/constants/sidebar';
+import { CHART_TYPE, CHIP_LABELS, HEALTH_STYLES, HEALTH_TRENDS, PRIORITY_LABELS } from '@/constants/sidebar';
 import type { AgmarknetData, Farm, HeatmapData, MaskOverlay } from '@/types';
 
 export type HealthLabel = keyof typeof HEALTH_STYLES;
@@ -30,3 +30,16 @@ export interface MandiRatesPanelProps {
   detectedDistrict?: string;
   aiAnalysis?: string;
 }
+
+export interface NDVITrendsPanelProps {
+  heatmapData: HeatmapData;
+  onViewStressMap?: () => void;
+}
+
+export type PriorityLabel = typeof PRIORITY_LABELS[keyof typeof PRIORITY_LABELS];
+
+export type TrendStyle = typeof HEALTH_TRENDS[keyof typeof HEALTH_TRENDS];
+
+export type ChipLabel = typeof CHIP_LABELS[keyof typeof CHIP_LABELS];
+
+export type ChartType = typeof CHART_TYPE[keyof typeof CHART_TYPE];
