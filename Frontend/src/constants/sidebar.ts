@@ -34,8 +34,6 @@ export const CHIP_LABELS = {
   AMBER: 'amber',
   RED: 'red',
   SKY: 'sky',
-  ORANGE: 'orange',
-  SLATE: 'slate',
 } as const;
 
 export const TREND_STYLES = {
@@ -294,17 +292,3 @@ export const DEFAULT_SIDEBAR = {
   MAX_WIDTH: 640,
   DEFAULT_WIDTH: 350,
 }
-
-export const BUTTON_CLASSES = {
-  [CHIP_LABELS.AMBER]: 'border-amber-300 text-amber-800 hover:bg-amber-100',
-  [CHIP_LABELS.ORANGE]: 'border-orange-300 text-orange-800 hover:bg-orange-100',
-  [CHIP_LABELS.RED]: 'border-red-300 text-red-700 hover:bg-red-100',
-  [CHIP_LABELS.SLATE]: 'border-slate-300 text-slate-700 hover:bg-slate-100',
-}
-
-export const TONE_CLASSES = {
-  [CHIP_LABELS.AMBER]: 'border-amber-200 bg-amber-50 text-amber-800',
-  [CHIP_LABELS.ORANGE]: 'border-orange-200 bg-orange-50 text-orange-800',
-  [CHIP_LABELS.RED]: 'border-red-200 bg-red-50 text-red-800',
-  [CHIP_LABELS.SLATE]: 'border-slate-200 bg-slate-50 text-slate-700',
-};

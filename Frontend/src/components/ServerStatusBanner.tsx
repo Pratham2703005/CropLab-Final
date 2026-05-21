@@ -5,58 +5,19 @@
  */
 import { AlertTriangle, Pause, Play } from 'lucide-react';
 import { useServerStatus } from '@/contexts/serverStatus';
-import type { ChipLabel } from '@/types/sidebar';
-import { SERVER_STATUS } from '@/constants/server';
-import { BUTTON_CLASSES, CHIP_LABELS, TONE_CLASSES } from '@/constants';
+import {
+  BUTTON_CLASSES,
+  SERVER_STATUS,
+  SERVER_STATUS_BANNER,
+  SERVER_TONE,
+  TONE_CLASSES,
+} from '@/constants';
 export function ServerStatusBanner() {
   const { status, isPolling, stopPolling, startPolling } = useServerStatus();
 
-  if (status === 'ready') return null;
+  if (status === SERVER_STATUS.READY) return null;
 
-  // Tone + icon + message + action per status.
-  let tone: ChipLabel ;
-  let message: React.ReactNode;
-  let showSpinner = false;
-
-  if (status === SERVER_STATUS.CHECKING) {
-    tone = CHIP_LABELS.AMBER;
-    showSpinner = true;
-    message = (
-      <>
-        Connecting to Server.
-      </>
-    );
-  } else if (status === SERVER_STATUS.WAKING) {
-    tone = CHIP_LABELS.AMBER;
-    showSpinner = true;
-    message = (
-      <>
-        Server is waking up, this can take up to 2 minutes. Try Showcase farms in the meantime. 
-      </>
-    );
-  } else if (status === SERVER_STATUS.DEGRADED) {
-    tone = CHIP_LABELS.ORANGE;
-    message = (
-      <>
-        <span className='font-semibold'>Server is degraded.</span> Google Earth Engine Failed to start. This can happen if the server is overloaded. Try again later or contact support if the issue persists.
-      </>
-    );
-  } else if (status === SERVER_STATUS.STOPPED) {
-    tone = CHIP_LABELS.SLATE;
-    message = (
-      <>
-        Server Connection stopped.
-      </>
-    );
-  } else {
-    // error
-    tone = CHIP_LABELS.RED;
-    message = (
-      <>
-        Unable to connect to the server. Please check your internet connection and try again. If the problem persists, contact support.
-      </>
-    );
-  }
+  const { tone, showSpinner, lead, message } = SERVER_STATUS_BANNER[status];
 
   return (
     <div
@@ -67,12 +28,20 @@ export function ServerStatusBanner() {
       ) : (
         <AlertTriangle
           className={`h-5 w-5 flex-shrink-0 ${
-            tone === CHIP_LABELS.SLATE ? 'opacity-50' : ''
+            tone === SERVER_TONE.SLATE ? 'opacity-50' : ''
           }`}
         />
       )}
 
-      <p className='flex-1 text-sm'>{message}</p>
+      <p className='flex-1 text-sm'>
+        {lead ? (
+          <>
+            <span className='font-semibold'>{lead}</span> {message}
+          </>
+        ) : (
+          message
+        )}
+      </p>
 
       {isPolling ? (
         <button
