@@ -13,7 +13,7 @@ import {
   CloudSun,
   CloudDrizzle,
 } from 'lucide-react';
-import type { WeatherData } from '../hooks/useWeather';
+import type { WeatherData } from '@/hooks/useWeather';
 
 interface WeatherCondition {
   label: string;
@@ -97,7 +97,7 @@ function getFarmSuitability(weather: WeatherData['current']): Suitability {
       color: 'text-red-700',
       bg: 'bg-red-50 border-red-200',
       dot: 'bg-red-500',
-      tip: 'Thunderstorm — avoid all field operations',
+      tip: 'Thunderstorm - avoid all field operations',
     };
   if (weather.weatherCode >= 61 || weather.precipitation > 2)
     return {
@@ -105,7 +105,7 @@ function getFarmSuitability(weather: WeatherData['current']): Suitability {
       color: 'text-orange-700',
       bg: 'bg-orange-50 border-orange-200',
       dot: 'bg-orange-500',
-      tip: 'Heavy rain — delay spraying & harvest',
+      tip: 'Heavy rain - delay spraying & harvest',
     };
   if (weather.windSpeed > 30)
     return {
@@ -113,7 +113,7 @@ function getFarmSuitability(weather: WeatherData['current']): Suitability {
       color: 'text-yellow-700',
       bg: 'bg-yellow-50 border-yellow-200',
       dot: 'bg-yellow-500',
-      tip: 'High winds — avoid aerial spraying',
+      tip: 'High winds - avoid aerial spraying',
     };
   if (weather.weatherCode === 0 || weather.weatherCode <= 3)
     return {

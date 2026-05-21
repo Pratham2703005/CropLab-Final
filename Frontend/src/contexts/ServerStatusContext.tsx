@@ -21,11 +21,8 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import {
-  ServerStatusContext,
-  type ServerStatus,
-  type ServerStatusValue,
-} from './serverStatus';
+import { ServerStatusContext } from './serverStatus';
+import type { ServerStatusValue, ServerStatus } from '@/types';
 
 const SESSION_KEY = 'croplab.serverReady';
 const POLL_BASE_INTERVAL_MS = 5000; // delay before the first retry

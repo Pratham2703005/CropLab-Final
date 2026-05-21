@@ -4,18 +4,8 @@
  * component) so React Fast Refresh works — a file must export only
  * components for Fast Refresh, so the hook/context live here.
  */
-import type { ServerStatus } from '@/types';
+import type { ServerStatusValue } from '@/types';
 import { createContext, useContext } from 'react';
-export interface ServerStatusValue {
-  status: ServerStatus;
-  isReady: boolean;
-  /** True while the poller is actively contacting the backend. */
-  isPolling: boolean;
-  /** Stop contacting the backend. */
-  stopPolling: () => void;
-  /** (Re)start polling the backend. */
-  startPolling: () => void;
-}
 
 export const ServerStatusContext = createContext<ServerStatusValue | undefined>(
   undefined

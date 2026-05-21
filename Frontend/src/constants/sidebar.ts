@@ -34,6 +34,8 @@ export const CHIP_LABELS = {
   AMBER: 'amber',
   RED: 'red',
   SKY: 'sky',
+  ORANGE: 'orange',
+  SLATE: 'slate',
 } as const;
 
 export const TREND_STYLES = {
@@ -43,10 +45,10 @@ export const TREND_STYLES = {
 } as const;
 
 export const CHIP_STYLES = {
-  emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  amber: 'bg-amber-100 text-amber-800 border-amber-200',
-  red: 'bg-red-100 text-red-800 border-red-200',
-  sky: 'bg-sky-100 text-sky-800 border-sky-200',
+  [CHIP_LABELS.EMERALD]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  [CHIP_LABELS.AMBER]: 'bg-amber-100 text-amber-800 border-amber-200',
+  [CHIP_LABELS.RED]: 'bg-red-100 text-red-800 border-red-200',
+  [CHIP_LABELS.SKY]: 'bg-sky-100 text-sky-800 border-sky-200',
 } as const;
 
 export const PRIORITY = {
@@ -292,3 +294,17 @@ export const DEFAULT_SIDEBAR = {
   MAX_WIDTH: 640,
   DEFAULT_WIDTH: 350,
 }
+
+export const BUTTON_CLASSES = {
+  [CHIP_LABELS.AMBER]: 'border-amber-300 text-amber-800 hover:bg-amber-100',
+  [CHIP_LABELS.ORANGE]: 'border-orange-300 text-orange-800 hover:bg-orange-100',
+  [CHIP_LABELS.RED]: 'border-red-300 text-red-700 hover:bg-red-100',
+  [CHIP_LABELS.SLATE]: 'border-slate-300 text-slate-700 hover:bg-slate-100',
+}
+
+export const TONE_CLASSES = {
+  [CHIP_LABELS.AMBER]: 'border-amber-200 bg-amber-50 text-amber-800',
+  [CHIP_LABELS.ORANGE]: 'border-orange-200 bg-orange-50 text-orange-800',
+  [CHIP_LABELS.RED]: 'border-red-200 bg-red-50 text-red-800',
+  [CHIP_LABELS.SLATE]: 'border-slate-200 bg-slate-50 text-slate-700',
+};
