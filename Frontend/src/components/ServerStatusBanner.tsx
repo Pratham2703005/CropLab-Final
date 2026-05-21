@@ -3,10 +3,12 @@
  * toast notifications — shows the current poll status with a Stop / Start
  * polling control. Renders nothing once the server is ready.
  */
+import { useEffect, useState } from 'react';
 import { AlertTriangle, Pause, Play } from 'lucide-react';
 import { useServerStatus } from '@/contexts/serverStatus';
 import {
   BUTTON_CLASSES,
+  SERVER_BANNER_DELAY_MS,
   SERVER_STATUS,
   SERVER_STATUS_BANNER,
   SERVER_TONE,
@@ -15,7 +17,18 @@ import {
 export function ServerStatusBanner() {
   const { status, isPolling, stopPolling, startPolling } = useServerStatus();
 
-  if (status === SERVER_STATUS.READY) return null;
+  // Grace period: stay hidden briefly so a fast (warm) server that reaches
+  // `ready` within the window never flashes the banner.
+  const [delayElapsed, setDelayElapsed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDelayElapsed(true),
+      SERVER_BANNER_DELAY_MS
+    );
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (status === SERVER_STATUS.READY || !delayElapsed) return null;
 
   const { tone, showSpinner, lead, message } = SERVER_STATUS_BANNER[status];
 

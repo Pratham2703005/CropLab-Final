@@ -23,32 +23,10 @@ import {
 } from 'react';
 import { ServerStatusContext } from './serverStatus';
 import type { ServerStatusValue, ServerStatus } from '@/types';
-
-const SESSION_KEY = 'croplab.serverReady';
-const POLL_BASE_INTERVAL_MS = 5000; // delay before the first retry
-const POLL_MAX_INTERVAL_MS = 60000; // backoff ceiling
-const POLL_BACKOFF_FACTOR = 1.8; // each retry waits this much longer
-const REQUEST_TIMEOUT_MS = 10000;
-const DEADLINE_MS = 3 * 60 * 1000;
-
-const sessionReady = (): boolean => {
-  try {
-    return (
-      typeof window !== 'undefined' &&
-      window.sessionStorage.getItem(SESSION_KEY) === '1'
-    );
-  } catch {
-    return false;
-  }
-};
+import { DEADLINE_MS, POLL_BACKOFF_FACTOR, POLL_BASE_INTERVAL_MS, POLL_MAX_INTERVAL_MS, REQUEST_TIMEOUT_MS, SERVER_STATUS } from '@/constants';
 
 export function ServerStatusProvider({ children }: { children: ReactNode }) {
-  // If the server was already confirmed ready earlier this tab session,
-  // start at `ready` and skip polling entirely.
-  const alreadyReady = sessionReady();
-  const [status, setStatus] = useState<ServerStatus>(
-    alreadyReady ? 'ready' : 'checking'
-  );
+  const [status, setStatus] = useState<ServerStatus>(SERVER_STATUS.CHECKING);
 
   // All poll bookkeeping in refs so React StrictMode's double-mount can't
   // spawn two live pollers.
@@ -90,7 +68,7 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
   const checkHealth = useCallback(async () => {
     if (stoppedRef.current) return;
     if (deadlineRef.current !== null && Date.now() > deadlineRef.current) {
-      setStatus('error');
+      setStatus(SERVER_STATUS.ERROR);
       halt();
       return;
     }
@@ -109,7 +87,7 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         // Server reachable but erroring (often mid-boot) — keep waking.
         setStatus(prev =>
-          prev === 'ready' || prev === 'degraded' ? prev : 'waking'
+          prev === SERVER_STATUS.READY || prev === SERVER_STATUS.DEGRADED ? prev : SERVER_STATUS.WAKING
         );
         scheduleNextPoll();
         return;
@@ -125,23 +103,18 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
       if (stoppedRef.current) return;
 
       if (body.status === 'healthy') {
-        setStatus('ready');
-        try {
-          window.sessionStorage.setItem(SESSION_KEY, '1');
-        } catch {
-          /* sessionStorage unavailable — non-fatal */
-        }
+        setStatus(SERVER_STATUS.READY);
         halt();
       } else {
         // Server up but GEE failed to initialise.
-        setStatus('degraded');
+        setStatus(SERVER_STATUS.DEGRADED);
         halt();
       }
     } catch {
       // AbortError (timeout) or network failure — server still asleep.
       if (stoppedRef.current) return;
       setStatus(prev =>
-        prev === 'ready' || prev === 'degraded' ? prev : 'waking'
+        prev === SERVER_STATUS.READY || prev === SERVER_STATUS.DEGRADED ? prev : SERVER_STATUS.WAKING
       );
       scheduleNextPoll();
     } finally {
@@ -161,29 +134,28 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
   }, [checkHealth]);
 
   useEffect(() => {
-    if (alreadyReady) return;
     runPoller();
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       activeControllerRef.current?.abort();
     };
-  }, [alreadyReady, runPoller]);
+  }, [runPoller]);
 
   const stopPolling = useCallback(() => {
     halt();
-    setStatus('stopped');
+    setStatus(SERVER_STATUS.STOPPED);
   }, [halt]);
 
   const startPolling = useCallback(() => {
-    setStatus('checking');
+    setStatus(SERVER_STATUS.CHECKING);
     runPoller();
   }, [runPoller]);
 
   const value = useMemo<ServerStatusValue>(
     () => ({
       status,
-      isReady: status === 'ready' || status === 'degraded',
-      isPolling: status === 'checking' || status === 'waking',
+      isReady: status === SERVER_STATUS.READY || status === SERVER_STATUS.DEGRADED,
+      isPolling: status === SERVER_STATUS.CHECKING || status === SERVER_STATUS.WAKING,
       stopPolling,
       startPolling,
     }),

@@ -69,3 +69,13 @@ export const SERVER_STATUS_BANNER: Record<
       'Unable to connect to the server. Please check your internet connection and try again. If the problem persists, contact support.',
   },
 };
+
+// Grace period before the banner appears. If the server reaches `ready` within
+// this window (warm backend), the banner never shows — avoids a brief flash.
+export const SERVER_BANNER_DELAY_MS = 800;
+
+export const POLL_BASE_INTERVAL_MS = 5000; // delay before the first retry
+export const POLL_MAX_INTERVAL_MS = 60000; // backoff ceiling
+export const POLL_BACKOFF_FACTOR = 1.8; // each retry waits this much longer
+export const REQUEST_TIMEOUT_MS = 10000;
+export const DEADLINE_MS = 3 * 60 * 1000;
