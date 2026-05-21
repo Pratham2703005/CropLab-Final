@@ -101,9 +101,9 @@ export const Card = ({
           ? LOCK_VARIANT.PAUSED
           : LOCK_VARIANT.WAKING;
     const title = {
-      offline: 'Backend is offline - this farm needs the server',
-      paused: 'Health polling is stopped - resume it to open this farm',
-      waking: 'Waking up the server - this farm will unlock shortly',
+      [LOCK_VARIANT.OFFLINE]: 'Backend is offline - this farm needs the server',
+      [LOCK_VARIANT.PAUSED]: 'Health polling is stopped - resume it to open this farm',
+      [LOCK_VARIANT.WAKING]: 'Waking up the server - this farm will unlock shortly',
     }[lockVariant];
     return (
       <div
