@@ -23,7 +23,7 @@ import {
 } from 'react';
 import { ServerStatusContext } from './serverStatus';
 import type { ServerStatusValue, ServerStatus } from '@/types';
-import { DEADLINE_MS, POLL_BACKOFF_FACTOR, POLL_BASE_INTERVAL_MS, POLL_MAX_INTERVAL_MS, REQUEST_TIMEOUT_MS, SERVER_STATUS } from '@/constants';
+import { API_BASE_URL, DEADLINE_MS, POLL_BACKOFF_FACTOR, POLL_BASE_INTERVAL_MS, POLL_MAX_INTERVAL_MS, REQUEST_TIMEOUT_MS, SERVER_STATUS } from '@/constants';
 
 export function ServerStatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ServerStatus>(SERVER_STATUS.CHECKING);
@@ -78,7 +78,7 @@ export function ServerStatusProvider({ children }: { children: ReactNode }) {
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/health`, {
+      const res = await fetch(`${API_BASE_URL}/health`, {
         signal: controller.signal,
         cache: 'no-store',
       });

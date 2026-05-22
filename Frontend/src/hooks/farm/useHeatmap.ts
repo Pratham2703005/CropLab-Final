@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { API_BASE_URL } from '../../constants';
 import { heatmapService } from '../../services/fileDatabase';
 import { getShowcaseHeatmap, isShowcaseFarmId } from '../../utils/showcaseFarms';
 import type { HeatmapData } from '../../types/farm';
@@ -136,7 +137,7 @@ export const useHeatmap = (farmId?: string): UseHeatmapReturn => {
       const requestHeatmap = async (
         payload: ReturnType<typeof buildPayload>
       ): Promise<Response> => {
-        return fetch(`${import.meta.env.VITE_API_BASE_URL}/generate_heatmap_lite`, {
+        return fetch(`${API_BASE_URL}/generate_heatmap_lite`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

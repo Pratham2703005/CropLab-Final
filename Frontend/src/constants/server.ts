@@ -1,5 +1,13 @@
 import type { ServerBannerContent, ServerStatus } from '@/types/server';
 
+/**
+ * Backend base URL with any trailing slash(es) stripped. Callers can safely
+ * write `${API_BASE_URL}/health` without producing `//health`, which the API
+ * treats as a distinct path and 404s. VITE_API_BASE_URL may be configured
+ * with or without a trailing slash — it is normalised here.
+ */
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+
 export const SERVER_STATUS = {
     CHECKING: 'checking',
     WAKING: 'waking',
