@@ -98,7 +98,10 @@ export default function FarmDetail() {
       farm.coordinates &&
       farm.coordinates.length > 0 &&
       !hasInitiallyFetchedHeatmap &&
-      !heatmapData
+      !heatmapData &&
+      // Already cached: let the async cache-load populate heatmapData instead
+      // of racing it with a redundant backend POST.
+      !heatmapCached
     ) {
       const coordinates = farm.coordinates
         .filter(coord => coord.length >= 2)
@@ -115,7 +118,7 @@ export default function FarmDetail() {
         setHasInitiallyFetchedHeatmap(true);
       }
     }
-  }, [farm, isReady, fetchHeatmapData, hasInitiallyFetchedHeatmap, heatmapData]);
+  }, [farm, isReady, fetchHeatmapData, hasInitiallyFetchedHeatmap, heatmapData, heatmapCached]);
 
   // Show error toast when heatmap error occurs
   useEffect(() => {
@@ -335,8 +338,12 @@ export default function FarmDetail() {
           onToggleLayerControls={() => setShowLayerControls(prev => !prev)}
         />
 
-        {/* Map Layer Selector (Bottom-Left) */}
-        {!heatmapLoading && showLayerControls && (
+        {/* Map Layer Selector (Bottom-Left).
+            Gated on heatmap data, not the loading flag: the controls only do
+            something once there are masks to adjust, and tying visibility to
+            `heatmapLoading` let a slow/stuck background fetch hide the panel
+            (the "panel doesn't show until reload" race). */}
+        {heatmapData && showLayerControls && (
           <MapLayerSelector
             activeLayer={activeLayer}
             onLayerChange={setActiveLayer}
